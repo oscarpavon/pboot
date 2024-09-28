@@ -3,7 +3,7 @@
 #include <stdint.h>
 
 
-struct efi_system_table* system_table;
+struct SystemTable* system_table;
 
 uint8_t entry_selected = 0;
 
@@ -23,7 +23,7 @@ void print_selection_counter(){
 }
 
 efi_status_t efi_main(
-	efi_handle_t handle, struct efi_system_table *in_system_table)
+	Handle bootloader_handle, struct SystemTable *in_system_table)
 {
 
 	system_table = in_system_table;
@@ -33,6 +33,20 @@ efi_status_t efi_main(
 	status = system_table->out->clear_screen(system_table->out);
 	if (status != 0)
 		return status;
+
+	
+	//get loaded image to get device path
+	struct LoadedImageProtocol* bootloader_image;
+	struct GUID guid = EFI_LOADED_IMAGE_PROTOCOL_GUID;
+	
+	system_table->boot_table->open_protocol(bootloader_handle,
+			&guid,
+			&bootloader_image,
+			bootloader_handle,
+			0,
+			EFI_OPEN_PROTOCOL_BY_HANDLE_PROTOCOL)	;
+
+
 
 
 	if(show_bootloader){
