@@ -9,13 +9,30 @@ struct efi_table_header {
 	uint32_t reserved;
 };
 
+typedef uint64_t efi_status_t;
+typedef efi_status_t efi_status;
+
+#define KEY_CODE_UP 0x01
+#define KEY_CODE_DOWN 0x02
+
+typedef struct{
+	uint16_t scan_code;
+	uint16_t unicode_char;
+}InputKey;
+
+struct InputProtocol{
+	void (*reset)();
+	efi_status (*read_key_stroke)(struct InputProtocol *self, 
+			InputKey* key);
+	void (*wait_for_key)();//boot_services.wait_for_event()
+};
 
 struct efi_system_table {
 	struct efi_table_header header;
 	uint16_t *unused1;//firmware vendor
 	uint32_t unused2;//firmware revision
 	void *unused3;//console in handle
-	void *unused4;//console in
+	struct InputProtocol *input; //ConIn
 	void *unused5;//console out handle
 	struct efi_simple_text_output_protocol *out;//console out
 	void *unused6;//standard error handle
@@ -28,9 +45,9 @@ struct efi_system_table {
 
 typedef void *efi_handle_t;
 
-typedef uint64_t efi_status_t;
-typedef efi_status_t efi_status;
 typedef uint64_t efi_uint_t;
+
+
 
 struct efi_simple_text_output_protocol {
 	efi_status (*unused1)(struct efi_simple_text_output_protocol *, bool);

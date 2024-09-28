@@ -33,6 +33,8 @@ efi_status_t efi_main(
 	status = system_table->out->clear_screen(system_table->out);
 	if (status != 0)
 		return status;
+
+
 	if(show_bootloader){
 		print_entries();
 		print_selection_counter();
@@ -42,8 +44,26 @@ efi_status_t efi_main(
 		system_table->out->output_string(system_table->out, u"\n\r");
 	}
 
+	InputKey key_pressed;
 	while (1) {
 	
+	system_table->input->read_key_stroke(system_table->input, &key_pressed);
+
+	if(key_pressed.scan_code == KEY_CODE_UP){
+		
+		system_table->out->clear_screen(system_table->out);
+		entry_selected--;
+		print_entries();
+		print_selection_counter();
+	}
+	if(key_pressed.scan_code == KEY_CODE_DOWN){
+		
+		system_table->out->clear_screen(system_table->out);
+		entry_selected++;
+		print_entries();
+		print_selection_counter();
+	}
+
 	}
 	return 0;
 }
