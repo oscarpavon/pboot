@@ -93,6 +93,67 @@ enum MemoryType{
 	EFI_MAX_MEMORY_TYPE,
 };
 
+// Open modes
+static const uint64_t EFI_FILE_MODE_READ = 0x0000000000000001;
+static const uint64_t EFI_FILE_MODE_WRITE = 0x0000000000000002;
+static const uint64_t EFI_FILE_MODE_CREATE = 0x8000000000000000;
+
+// File attributes
+static const uint64_t EFI_FILE_READ_ONLY = 0x1;
+static const uint64_t EFI_FILE_HIDDEN = 0x2;
+static const uint64_t EFI_FILE_SYSTEM = 0x4;
+static const uint64_t EFI_FILE_RESERVED = 0x8;
+static const uint64_t EFI_FILE_DIRECTORY = 0x10;
+static const uint64_t EFI_FILE_ARCHIVE = 0x20;
+
+static const uint64_t MAX_BIT = 0x8000000000000000ULL;
+
+#define ERROR_CODE(status) (MAX_BIT | (status))
+
+static const efi_status_t EFI_SUCCESS = 0;
+static const efi_status_t EFI_LOAD_ERROR = ERROR_CODE(1);
+
+struct FileProtocol{
+    uint64_t revision;
+    efi_status_t (*open)(
+        struct FileProtocol* self,
+        struct FileProtocol** new_handle,
+        uint16_t * file_name,
+        uint64_t open_mode,
+        uint64_t attributes);
+
+    efi_status_t (*close)(struct FileProtocol*);
+
+    void (*unused1)();
+
+    efi_status_t (*read)(struct FileProtocol*, efi_uint_t *, void *);
+
+    void (*unused2)();
+
+    efi_status_t (*get_position)(struct FileProtocol*, uint64_t *);
+    efi_status_t (*set_position)(struct FileProtocol*, uint64_t);
+
+    efi_status_t (*get_info)(
+        struct FileProtocol*, struct GUID*, efi_uint_t *, void *);
+
+    void (*unused6)();
+    void (*unused7)();
+    void (*unused8)();
+    void (*unused9)();
+    void (*unused10)();
+    void (*unused11)();
+};
+
+#define EFI_SIMPLE_FILE_SYSTEM_PROTOCOL_GUID \
+    { 0x0964e5b22, 0x6459, 0x11d2, \
+      { 0x8e, 0x39, 0x00, 0xa0, 0xc9, 0x69, 0x72, 0x3b } }
+
+struct FileSystemProtocol{
+    uint64_t revision;
+    efi_status_t (*open_volume)(
+        struct FileSystemProtocol* self, struct FileProtocol** root);
+};
+
 #define EFI_LOADED_IMAGE_PROTOCOL_GUID \
 	{ 0x5b1b31a1, 0x9562, 0x11d2, \
 	  { 0x8e, 0x3f, 0x00, 0xa0, 0xc9, 0x69, 0x72, 0x3b } }
@@ -198,14 +259,14 @@ struct BootTable
 
 	efi_status_t (*close_protocol)(
 		Handle,
-		struct efi_guid *,
+		struct GUID *,
 		Handle,
 		Handle);
 	void (*unused33)();
 
 	// Library Services
 	efi_status_t (*protocols_per_handle)(
-		Handle, struct efi_guid ***, efi_uint_t *);
+		Handle, struct GUID ***, efi_uint_t *);
 	void (*unused35)();
 	void (*unused36)();
 	void (*unused37)();

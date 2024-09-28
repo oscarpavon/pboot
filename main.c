@@ -37,17 +37,47 @@ efi_status_t efi_main(
 	
 	//get loaded image to get device path
 	struct LoadedImageProtocol* bootloader_image;
-	struct GUID guid = EFI_LOADED_IMAGE_PROTOCOL_GUID;
+	struct GUID loaded_image_guid = EFI_LOADED_IMAGE_PROTOCOL_GUID;
 	
 	system_table->boot_table->open_protocol(bootloader_handle,
-			&guid,
+			&loaded_image_guid,
 			&bootloader_image,
 			bootloader_handle,
 			0,
 			EFI_OPEN_PROTOCOL_BY_HANDLE_PROTOCOL)	;
 
+	Handle device = bootloader_image->device;
 
+	struct GUID file_system_guid = EFI_SIMPLE_FILE_SYSTEM_PROTOCOL_GUID;
+	struct FileSystemProtocol* root_file_system;
 
+	system_table->boot_table->open_protocol(device,
+			&file_system_guid,
+			&root_file_system,
+			bootloader_handle,
+			0,
+			EFI_OPEN_PROTOCOL_BY_HANDLE_PROTOCOL)	;
+
+	struct FileProtocol* root_directory;
+
+	efi_status_t open_volumen_status = 
+		root_file_system->open_volume(root_file_system, &root_directory);
+
+	if(open_volumen_status != EFI_SUCCESS){
+
+		system_table->out->output_string(system_table->out, u"Open volume error \n\r");
+	}
+
+	struct FileProtocol* opend_kernel_file;
+
+	efi_status_t open_kernel_status = root_directory->open(
+			root_directory,
+			&opend_kernel_file,
+			u"vmlinuz.efi",
+			EFI_FILE_MODE_READ,
+			EFI_FILE_READ_ONLY
+			);	
+	
 
 	if(show_bootloader){
 		print_entries();
