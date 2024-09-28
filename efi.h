@@ -165,7 +165,7 @@ struct LoadedImageProtocol{
 
 	// Source location of the image
 	Handle device;
-	DevicePathProtocol *filepath;
+	DevicePathProtocol *file_path;
 	void *reserved;
 
 	// Image's load options

@@ -1,11 +1,44 @@
 #include "efi.h"
 #include "config.h"
+#include "elf.h"
 #include <stdint.h>
 
 
 struct SystemTable* system_table;
 
 uint8_t entry_selected = 0;
+
+efi_status_t read_fixed(
+	struct SystemTable *system,
+	struct FileProtocol *file,
+	uint64_t offset,
+	size_t size,
+	void *dst)
+{
+	efi_status_t status = EFI_SUCCESS;
+	unsigned char *buf = dst;
+	size_t read = 0;
+
+	status = file->set_position(file, offset);
+	if (status != EFI_SUCCESS) {
+
+		return status;
+	}
+
+	while (read < size) {
+		efi_uint_t remains = size - read;
+
+		status = file->read(file, &remains, (void *)(buf + read));
+		if (status != EFI_SUCCESS) {
+	
+			return status;
+		}
+
+		read += remains;
+	}
+
+	return status;
+}
 
 void print_entries(){
 	uint8_t number_of_entries = sizeof(entries)/sizeof(entries[0]);
@@ -68,15 +101,41 @@ efi_status_t efi_main(
 		system_table->out->output_string(system_table->out, u"Open volume error \n\r");
 	}
 
-	struct FileProtocol* opend_kernel_file;
+	struct FileProtocol* opened_kernel_file;
 
 	efi_status_t open_kernel_status = root_directory->open(
 			root_directory,
-			&opend_kernel_file,
-			u"vmlinuz.efi",
+			&opened_kernel_file,
+			u"vmlinux",
 			EFI_FILE_MODE_READ,
 			EFI_FILE_READ_ONLY
 			);	
+
+	struct ElfHeader kernel_elf_header;	
+	read_fixed(system_table, opened_kernel_file, 0, 
+			sizeof(struct ElfHeader), &kernel_elf_header);
+
+	struct ElfProgramHeader* kernel_program_headers;
+
+	system_table->boot_table->allocate_pool(EFI_LOADER_DATA,
+			kernel_elf_header.program_header_number_of_entries * 
+			kernel_elf_header.program_header_entry_size,
+			(void**)kernel_program_headers)	;
+
+	read_fixed(system_table, opened_kernel_file,
+			kernel_elf_header.program_header_offset, 
+			kernel_elf_header.program_header_number_of_entries *
+			kernel_elf_header.program_header_entry_size,
+			(void*)&kernel_program_headers);
+
+	
+	uint64_t page_size = 4096;
+	uint64_t image_begin;
+	uint64_t image_end;
+	uint64_t image_size;
+	uint64_t image_addr;
+
+	
 	
 
 	if(show_bootloader){
