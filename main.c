@@ -8,6 +8,43 @@ struct SystemTable* system_table;
 
 uint8_t entry_selected = 0;
 
+
+
+static void get_image_size(
+	struct ElfHeader* kernel_header,
+	struct ElfProgramHeader* program_headers,
+	uint64_t alignment,
+	uint64_t *out_begin,
+	uint64_t *out_end)
+{
+	*out_begin = UINT64_MAX;
+	*out_end = 0;
+
+	for (size_t i = 0; i < kernel_header->program_header_number_of_entries; ++i) {
+		struct ElfProgramHeader *phdr = &program_headers[i];
+		uint64_t phdr_begin, phdr_end;
+		uint64_t align = alignment;
+
+		if (phdr->p_type != PT_LOAD)
+			continue;
+
+		if (phdr->p_align > align)
+			align = phdr->p_align;
+
+		phdr_begin = phdr->p_vaddr;
+		phdr_begin &= ~(align - 1);
+		if (*out_begin > phdr_begin)
+			*out_begin = phdr_begin;
+
+		phdr_end = phdr->p_vaddr + phdr->p_memsz + align - 1;
+		phdr_end &= ~(align - 1);
+		if (*out_end < phdr_end)
+			*out_end = phdr_end;
+	}
+}
+
+
+
 efi_status_t read_fixed(
 	struct SystemTable *system,
 	struct FileProtocol *file,
@@ -133,12 +170,23 @@ efi_status_t efi_main(
 	uint64_t image_begin;
 	uint64_t image_end;
 	uint64_t image_size;
-	uint64_t image_addr;
+	uint64_t image_address;
 
 	
-	
+	get_image_size(&kernel_elf_header,
+			kernel_program_headers, 
+			page_size, &image_begin, &image_end);
 
-	if(show_bootloader){
+	image_size = image_end - image_begin;
+
+	system_table->boot_table->allocate_pages(EFI_ALLOCATE_ANY_PAGES,
+			EFI_LOADER_DATA, image_size / page_size,
+			&image_address);
+
+
+
+
+	if(show_bootloader){ 
 		print_entries();
 		print_selection_counter();
 	}else{

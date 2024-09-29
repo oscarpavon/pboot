@@ -13,7 +13,7 @@ default: all
 	$(CC) $(CFLAGS) -c $< -o $@
 
 BOOTX64.EFI: main.o
-	$(LD) $(LDFLAGS) $< -out:../disk/EFI/BOOT/$@
+	$(LD) $(LDFLAGS) $< -out:../disk/EFI/BOOT/$@ -verbose
 
 -include $(SRCS:.c=.d)
 
