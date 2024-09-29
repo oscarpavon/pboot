@@ -1,5 +1,4 @@
-#include <stdint.h>
-#include <stdbool.h>
+#include "types.h"
 
 static const uint32_t EFI_OPEN_PROTOCOL_BY_HANDLE_PROTOCOL = 0x00000001;
 

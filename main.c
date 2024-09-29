@@ -9,6 +9,70 @@ struct SystemTable* system_table;
 uint8_t entry_selected = 0;
 
 
+void *set_memory(void *pointer, int value, size_t size)
+{
+	char *to = pointer;
+
+	for (size_t i = 0; i < size; ++i)
+		*to++ = value;
+	return pointer;
+}
+
+void *copy_memory(void *destination, const void *source, size_t size)
+{
+	const char *from = source;
+	char *to = destination;
+
+	for (size_t i = 0; i < size; ++i)
+		*to++ = *from++;
+	return destination;
+}
+
+struct ReserveMemory {
+	const char *name;
+	uint64_t begin;
+	uint64_t end;
+};
+
+size_t reserves_count;
+size_t reserve_capacity;
+struct ReserveMemory* main_reserve;
+
+static efi_status reserve_memory(uint64_t begin, uint64_t end){
+	if(reserves_count == reserve_capacity){
+
+	size_t new_size = 2 * reserves_count;
+	struct ReserveMemory* new_reserve = 0;
+	struct ReserveMemory* old_reserve = main_reserve;
+
+
+	if(new_size == 0)	
+		new_size = 16;
+
+	system_table->boot_table->allocate_pool(
+			EFI_LOADER_DATA, 
+			new_size * sizeof(struct ReserveMemory), 
+			(void **)&new_reserve
+			);
+
+	copy_memory(new_reserve, old_reserve,
+			reserves_count * sizeof(struct ReserveMemory));
+
+	main_reserve = new_reserve;
+	reserve_capacity = new_size;
+	
+	if(old_reserve != 0){
+		system_table->boot_table->free_pool((void*)old_reserve);
+	}
+	}	
+	
+	set_memory(&main_reserve[reserves_count],0,sizeof(struct ReserveMemory));
+	main_reserve[reserves_count].name = "Kernel";
+	main_reserve[reserves_count].begin = begin;
+	main_reserve[reserves_count].end = end;
+	reserves_count++;
+
+}
 
 static void get_image_size(
 	struct ElfHeader* kernel_header,
@@ -182,6 +246,38 @@ efi_status_t efi_main(
 	system_table->boot_table->allocate_pages(EFI_ALLOCATE_ANY_PAGES,
 			EFI_LOADER_DATA, image_size / page_size,
 			&image_address);
+
+
+	
+	for (size_t i = 0; i < kernel_elf_header.program_header_number_of_entries; ++i) {
+		struct ElfProgramHeader *phdr = &kernel_program_headers[i];
+
+		uint64_t phdr_addr;
+
+		if (phdr->p_type != PT_LOAD)
+			continue;
+
+		phdr_addr = image_address + phdr->p_vaddr - image_begin;
+		status = read_fixed(
+			system_table,
+			opened_kernel_file,
+			phdr->p_offset,
+			phdr->p_filesz,
+			(void *)phdr_addr);
+		if (status != EFI_SUCCESS) {
+
+			system_table->out->output_string(system_table->out, 
+					u"Failed to read kernel segment in memory\n\r");
+		}
+	
+
+		reserve_memory(phdr_addr, phdr_addr + phdr->p_memsz);
+
+
+
+	}
+
+	uint64_t kernel_image_entry = image_address + kernel_elf_header.e_entry - image_begin;	
 
 
 

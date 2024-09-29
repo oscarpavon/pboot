@@ -1,8 +1,7 @@
 #ifndef __ELF_H__
 #define __ELF_H__
 
-#include <stddef.h>
-#include <stdint.h>
+#include "types.h"
 
 // Basic ELF file types (e_type)
 static const uint16_t ET_NONE = 0;
