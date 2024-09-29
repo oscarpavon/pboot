@@ -1,13 +1,85 @@
 #include "efi.h"
 #include "config.h"
 #include "elf.h"
-#include <stdint.h>
 
+
+#define ELFABI __attribute__((sysv_abi))
 
 struct SystemTable* system_table;
+Handle* bootloader_handle;
+
+struct ElfProgramHeader* kernel_program_headers;
+struct ElfHeader kernel_elf_header;	
+struct FileProtocol* opened_kernel_file;
+
+struct FileSystemProtocol* root_file_system;
+struct FileProtocol* root_directory;
+	
+struct LoadedImageProtocol* bootloader_image;
+
+uint64_t kernel_image_entry;
 
 uint8_t entry_selected = 0;
 
+
+void log(uint16_t* text){
+	
+	system_table->out->output_string(system_table->out,text);
+	system_table->out->output_string(system_table->out,u"\n\r");
+
+}
+
+static void exit_boot_services(){
+
+	struct MemoryDescriptor *mmap;
+	efi_uint_t mmap_size = 4096;
+	efi_uint_t mmap_key;
+	efi_uint_t desc_size;
+	uint32_t desc_version;
+	efi_status_t status;
+
+	while (1) {
+		status = system_table->boot_table->allocate_pool(
+			EFI_LOADER_DATA,
+			mmap_size,
+			(void **)&mmap);
+		if(status != EFI_SUCCESS){
+			//log(u"Can't allocate memory for memory map");
+		}
+
+		status = system_table->boot_table->get_memory_map(
+			&mmap_size,
+			mmap,
+			&mmap_key,
+			&desc_size,
+			&desc_version);
+		if (status == EFI_SUCCESS){
+			//log(u"Got memory map");
+			break;
+		}
+
+
+		//system_table->boot_table->free_pool(mmap);
+		
+		if (status == EFI_BUFFER_TOO_SMALL) {
+			mmap_size *= 2;
+			continue;
+		}
+
+	}
+
+	//log(u"Closing boot services..");
+	status = system_table->boot_table->exit_boot_services(bootloader_handle, 
+			mmap_key);
+	if(status != EFI_SUCCESS){
+
+		//log(u"ERROR boot service not closed");
+		return;
+	}
+
+	//system_table->boot_table->free_pool(mmap);
+
+}
 
 void *set_memory(void *pointer, int value, size_t size)
 {
@@ -156,131 +228,7 @@ void print_selection_counter(){
 	system_table->out->output_string(system_table->out, u"10s");
 }
 
-efi_status_t efi_main(
-	Handle bootloader_handle, struct SystemTable *in_system_table)
-{
-
-	system_table = in_system_table;
-
-	efi_status_t status;
-
-	status = system_table->out->clear_screen(system_table->out);
-	if (status != 0)
-		return status;
-
-	
-	//get loaded image to get device path
-	struct LoadedImageProtocol* bootloader_image;
-	struct GUID loaded_image_guid = EFI_LOADED_IMAGE_PROTOCOL_GUID;
-	
-	system_table->boot_table->open_protocol(bootloader_handle,
-			&loaded_image_guid,
-			&bootloader_image,
-			bootloader_handle,
-			0,
-			EFI_OPEN_PROTOCOL_BY_HANDLE_PROTOCOL)	;
-
-	Handle device = bootloader_image->device;
-
-	struct GUID file_system_guid = EFI_SIMPLE_FILE_SYSTEM_PROTOCOL_GUID;
-	struct FileSystemProtocol* root_file_system;
-
-	system_table->boot_table->open_protocol(device,
-			&file_system_guid,
-			&root_file_system,
-			bootloader_handle,
-			0,
-			EFI_OPEN_PROTOCOL_BY_HANDLE_PROTOCOL)	;
-
-	struct FileProtocol* root_directory;
-
-	efi_status_t open_volumen_status = 
-		root_file_system->open_volume(root_file_system, &root_directory);
-
-	if(open_volumen_status != EFI_SUCCESS){
-
-		system_table->out->output_string(system_table->out, u"Open volume error \n\r");
-	}
-
-	struct FileProtocol* opened_kernel_file;
-
-	efi_status_t open_kernel_status = root_directory->open(
-			root_directory,
-			&opened_kernel_file,
-			u"vmlinux",
-			EFI_FILE_MODE_READ,
-			EFI_FILE_READ_ONLY
-			);	
-
-	struct ElfHeader kernel_elf_header;	
-	read_fixed(system_table, opened_kernel_file, 0, 
-			sizeof(struct ElfHeader), &kernel_elf_header);
-
-	struct ElfProgramHeader* kernel_program_headers;
-
-	system_table->boot_table->allocate_pool(EFI_LOADER_DATA,
-			kernel_elf_header.program_header_number_of_entries * 
-			kernel_elf_header.program_header_entry_size,
-			(void**)kernel_program_headers)	;
-
-	read_fixed(system_table, opened_kernel_file,
-			kernel_elf_header.program_header_offset, 
-			kernel_elf_header.program_header_number_of_entries *
-			kernel_elf_header.program_header_entry_size,
-			(void*)&kernel_program_headers);
-
-	
-	uint64_t page_size = 4096;
-	uint64_t image_begin;
-	uint64_t image_end;
-	uint64_t image_size;
-	uint64_t image_address;
-
-	
-	get_image_size(&kernel_elf_header,
-			kernel_program_headers, 
-			page_size, &image_begin, &image_end);
-
-	image_size = image_end - image_begin;
-
-	system_table->boot_table->allocate_pages(EFI_ALLOCATE_ANY_PAGES,
-			EFI_LOADER_DATA, image_size / page_size,
-			&image_address);
-
-
-	
-	for (size_t i = 0; i < kernel_elf_header.program_header_number_of_entries; ++i) {
-		struct ElfProgramHeader *phdr = &kernel_program_headers[i];
-
-		uint64_t phdr_addr;
-
-		if (phdr->p_type != PT_LOAD)
-			continue;
-
-		phdr_addr = image_address + phdr->p_vaddr - image_begin;
-		status = read_fixed(
-			system_table,
-			opened_kernel_file,
-			phdr->p_offset,
-			phdr->p_filesz,
-			(void *)phdr_addr);
-		if (status != EFI_SUCCESS) {
-
-			system_table->out->output_string(system_table->out, 
-					u"Failed to read kernel segment in memory\n\r");
-		}
-	
-
-		reserve_memory(phdr_addr, phdr_addr + phdr->p_memsz);
-
-
-
-	}
-
-	uint64_t kernel_image_entry = image_address + kernel_elf_header.e_entry - image_begin;	
-
-
-
+void bootloader_loop(){
 
 	if(show_bootloader){ 
 		print_entries();
@@ -312,6 +260,146 @@ efi_status_t efi_main(
 	}
 
 	}
+}
+
+
+void load_kernel(){
+
+	efi_status_t status;
+
+	//get loaded image to get device path
+	struct GUID loaded_image_guid = EFI_LOADED_IMAGE_PROTOCOL_GUID;
+	
+	system_table->boot_table->open_protocol(bootloader_handle,
+			&loaded_image_guid,
+			&bootloader_image,
+			bootloader_handle,
+			0,
+			EFI_OPEN_PROTOCOL_BY_HANDLE_PROTOCOL)	;
+
+	Handle device = bootloader_image->device;
+
+	struct GUID file_system_guid = EFI_SIMPLE_FILE_SYSTEM_PROTOCOL_GUID;
+
+	system_table->boot_table->open_protocol(device,
+			&file_system_guid,
+			&root_file_system,
+			bootloader_handle,
+			0,
+			EFI_OPEN_PROTOCOL_BY_HANDLE_PROTOCOL)	;
+
+
+	efi_status_t open_volumen_status = 
+		root_file_system->open_volume(root_file_system, &root_directory);
+
+	if(open_volumen_status != EFI_SUCCESS){
+
+		system_table->out->output_string(system_table->out, u"Open volume error \n\r");
+	}
+
+
+	efi_status_t open_kernel_status = root_directory->open(
+			root_directory,
+			&opened_kernel_file,
+			u"vmlinux",
+			EFI_FILE_MODE_READ,
+			EFI_FILE_READ_ONLY
+			);	
+
+	read_fixed(system_table, opened_kernel_file, 0, 
+			sizeof(struct ElfHeader), &kernel_elf_header);
+
+
+	system_table->boot_table->allocate_pool(EFI_LOADER_DATA,
+			kernel_elf_header.program_header_number_of_entries * 
+			kernel_elf_header.program_header_entry_size,
+			(void**)kernel_program_headers)	;
+
+	read_fixed(system_table, opened_kernel_file,
+			kernel_elf_header.program_header_offset, 
+			kernel_elf_header.program_header_number_of_entries *
+			kernel_elf_header.program_header_entry_size,
+			(void*)&kernel_program_headers);
+	
+
+	system_table->out->output_string(system_table->out, u"Kernel ELF readed\n\r");
+	
+	uint64_t page_size = 4096;
+	uint64_t image_begin;
+	uint64_t image_end;
+	uint64_t image_size;
+	uint64_t image_address;
+
+	
+	get_image_size(&kernel_elf_header,
+			kernel_program_headers, 
+			page_size, &image_begin, &image_end);
+
+	image_size = image_end - image_begin;
+
+	system_table->boot_table->allocate_pages(EFI_ALLOCATE_ANY_PAGES,
+			EFI_LOADER_DATA, image_size / page_size,
+			&image_address);
+
+
+	system_table->out->output_string(system_table->out, u"Load kernel to memroy\n\r");
+	
+	for (size_t i = 0; i < kernel_elf_header.program_header_number_of_entries; ++i) {
+		struct ElfProgramHeader *phdr = &kernel_program_headers[i];
+
+		uint64_t phdr_addr;
+
+		if (phdr->p_type != PT_LOAD)
+			continue;
+
+		phdr_addr = image_address + phdr->p_vaddr - image_begin;
+		status = read_fixed(
+			system_table,
+			opened_kernel_file,
+			phdr->p_offset,
+			phdr->p_filesz,
+			(void *)phdr_addr);
+		if (status != EFI_SUCCESS) {
+
+			system_table->out->output_string(system_table->out, 
+					u"Failed to read kernel segment in memory\n\r");
+		}
+	
+
+		reserve_memory(phdr_addr, phdr_addr + phdr->p_memsz);
+
+
+
+	}
+
+	uint64_t kernel_image_entry = image_address + kernel_elf_header.e_entry - image_begin;	
+
+	log(u"Kernel loaded to memory");
+
+}
+
+
+efi_status_t efi_main(
+	Handle in_bootloader_handle, struct SystemTable *in_system_table)
+{
+
+	system_table = in_system_table;
+
+	bootloader_handle = in_bootloader_handle;
+
+	log(u"Bootloader started")	;
+	load_kernel();
+	
+
+	void(ELFABI* entry)(struct ReserveMemory*, size_t);
+	//system_table->out->clear_screen(system_table->out);
+	exit_boot_services();
+
+	entry = (void (ELFABI*)(struct ReserveMemory*,size_t))kernel_image_entry;
+	(*entry)(main_reserve, reserves_count);
+	
+	//bootloader_loop();
+	while(1){};
 	return 0;
 }
 

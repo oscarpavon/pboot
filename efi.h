@@ -65,6 +65,13 @@ typedef void * Handle;
 
 typedef uint64_t efi_uint_t;
 
+struct MemoryDescriptor{
+	uint32_t type;
+	uint64_t physical_start;
+	uint64_t virtual_start;
+	uint64_t pages;
+	uint64_t attributes;
+};
 
 enum efi_allocate_type {
 	EFI_ALLOCATE_ANY_PAGES,
@@ -111,6 +118,9 @@ static const uint64_t MAX_BIT = 0x8000000000000000ULL;
 
 static const efi_status_t EFI_SUCCESS = 0;
 static const efi_status_t EFI_LOAD_ERROR = ERROR_CODE(1);
+static const efi_status_t EFI_INVALID_PARAMETER = ERROR_CODE(2);
+static const efi_status_t EFI_UNSUPPORTED = ERROR_CODE(3);
+static const efi_status_t EFI_BUFFER_TOO_SMALL = ERROR_CODE(5);
 
 struct FileProtocol{
     uint64_t revision;
@@ -197,7 +207,7 @@ struct BootTable
 	efi_status_t (*free_pages)(uint64_t, efi_uint_t);
 	efi_status_t (*get_memory_map)(
 		efi_uint_t *,
-		struct efi_memory_descriptor *,
+		struct MemoryDescriptor*,
 		efi_uint_t *,
 		efi_uint_t *,
 		uint32_t *);
