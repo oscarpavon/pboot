@@ -1,6 +1,29 @@
 #include "types.h"
 
+#define EFI_LOADED_IMAGE_PROTOCOL_GUID \
+	{ 0x5b1b31a1, 0x9562, 0x11d2, \
+	  { 0x8e, 0x3f, 0x00, 0xa0, 0xc9, 0x69, 0x72, 0x3b } }
+
+#define KEY_CODE_UP 0x01
+#define KEY_CODE_DOWN 0x02
+
+typedef void * Handle;
+
+typedef uint64_t efi_uint_t;
+
+typedef uint64_t efi_status_t;
+
+typedef efi_status_t efi_status;
+
+static const efi_status_t EFI_SUCCESS = 0;
+
 static const uint32_t EFI_OPEN_PROTOCOL_BY_HANDLE_PROTOCOL = 0x00000001;
+
+static const uint64_t EFI_FILE_MODE_READ = 0x0000000000000001;
+
+static const uint64_t EFI_FILE_READ_ONLY = 0x1;
+
+static const uint64_t MAX_BIT = 0x8000000000000000ULL;
 
 struct GUID{
 	uint32_t data1;
@@ -17,21 +40,12 @@ struct TableHeader{
 	uint32_t reserved;
 };
 
-typedef uint64_t efi_status_t;
-typedef efi_status_t efi_status;
-
 
 typedef struct{
 	uint8_t type;
 	uint8_t sub_type;
 	uint8_t length[2];
 }DevicePathProtocol;
-
-
-
-
-#define KEY_CODE_UP 0x01
-#define KEY_CODE_DOWN 0x02
 
 typedef struct{
 	uint16_t scan_code;
@@ -61,9 +75,6 @@ struct SystemTable{
 	void *unused11;//configuration table
 };
 
-typedef void * Handle;
-
-typedef uint64_t efi_uint_t;
 
 struct MemoryDescriptor{
 	uint32_t type;
@@ -73,54 +84,16 @@ struct MemoryDescriptor{
 	uint64_t attributes;
 };
 
-enum efi_allocate_type {
+enum AllocateType{
 	EFI_ALLOCATE_ANY_PAGES,
-	EFI_ALLOCATE_MAX_ADDRESS,
-	EFI_ALLOCATE_ADDRESS,
-	EFI_MAX_ALLOCATE_TYPE,
 };
 
 enum MemoryType{
-	EFI_RESERVED_MEMORY_TYPE,
 	EFI_LOADER_CODE,
 	EFI_LOADER_DATA,
-	EFI_BOOT_SERVICES_CODE,
-	EFI_BOOT_SERVICES_DATA,
-	EFI_RUNTIME_SERVICES_CODE,
-	EFI_RUNTIME_SERVICES_DATA,
-	EFI_CONVENTIAL_MEMORY,
-	EFI_UNUSABLE_MEMORY,
-	EFI_ACPI_RECLAIM_MEMORY,
-	EFI_ACPI_MEMORY_NVS,
-	EFI_MEMORY_MAPPED_IO,
-	EFI_MEMORY_MAPPED_IO_PORT_SPACE,
-	EFI_PAL_CODE,
-	EFI_PERSISTENT_MEMORY,
-	EFI_MAX_MEMORY_TYPE,
 };
 
-// Open modes
-static const uint64_t EFI_FILE_MODE_READ = 0x0000000000000001;
-static const uint64_t EFI_FILE_MODE_WRITE = 0x0000000000000002;
-static const uint64_t EFI_FILE_MODE_CREATE = 0x8000000000000000;
 
-// File attributes
-static const uint64_t EFI_FILE_READ_ONLY = 0x1;
-static const uint64_t EFI_FILE_HIDDEN = 0x2;
-static const uint64_t EFI_FILE_SYSTEM = 0x4;
-static const uint64_t EFI_FILE_RESERVED = 0x8;
-static const uint64_t EFI_FILE_DIRECTORY = 0x10;
-static const uint64_t EFI_FILE_ARCHIVE = 0x20;
-
-static const uint64_t MAX_BIT = 0x8000000000000000ULL;
-
-#define ERROR_CODE(status) (MAX_BIT | (status))
-
-static const efi_status_t EFI_SUCCESS = 0;
-static const efi_status_t EFI_LOAD_ERROR = ERROR_CODE(1);
-static const efi_status_t EFI_INVALID_PARAMETER = ERROR_CODE(2);
-static const efi_status_t EFI_UNSUPPORTED = ERROR_CODE(3);
-static const efi_status_t EFI_BUFFER_TOO_SMALL = ERROR_CODE(5);
 
 struct FileProtocol{
     uint64_t revision;
@@ -163,9 +136,6 @@ struct FileSystemProtocol{
         struct FileSystemProtocol* self, struct FileProtocol** root);
 };
 
-#define EFI_LOADED_IMAGE_PROTOCOL_GUID \
-	{ 0x5b1b31a1, 0x9562, 0x11d2, \
-	  { 0x8e, 0x3f, 0x00, 0xa0, 0xc9, 0x69, 0x72, 0x3b } }
 
 struct LoadedImageProtocol{
 	uint32_t revision;
@@ -200,7 +170,7 @@ struct BootTable
 
 	// Memory Services
 	efi_status_t (*allocate_pages)(
-		enum efi_allocate_type,
+		enum AllocateType,
 		enum MemoryType,
 		efi_uint_t,
 		uint64_t *);

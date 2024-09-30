@@ -12,9 +12,7 @@ typedef unsigned char uint8_t ;
 #define false 0
 
 #define __UINT64_C(c)	c ## UL
-# define UINT64_MAX		(__UINT64_C(18446744073709551615))
-
-#define ELFABI __attribute__((sysv_abi))
+#define UINT64_MAX		(__UINT64_C(18446744073709551615))
 
 typedef struct {
 	uint16_t *name;
