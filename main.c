@@ -261,9 +261,45 @@ void bootloader_loop(){
 
 	}
 }
+void chainload_linux_efi_stub(){
+	efi_status_t status;
+	status = opened_kernel_file->set_position(opened_kernel_file, 0xFFFFFFFFFFFFFFFF)	;
+	uint64_t kernel_file_size;
+	status = opened_kernel_file->get_position(opened_kernel_file, &kernel_file_size);
+
+	uint64_t *kernel_memory_allocated;
+
+	system_table->boot_table->allocate_pool(
+			EFI_LOADER_DATA, 
+			kernel_file_size, 
+			(void **)&kernel_memory_allocated
+			);
 
 
-void load_kernel(){
+	read_fixed(system_table, opened_kernel_file, 0,
+			kernel_file_size, kernel_memory_allocated);
+	
+	Handle kernel_image_handle;
+	status = system_table->boot_table->image_load(false, bootloader_handle, bootloader_image->file_path, kernel_memory_allocated, 
+			kernel_file_size, &kernel_image_handle);
+	if(status != EFI_SUCCESS){
+		log(u"Can't load kernel image");
+	}
+
+		log(u"loaded kernel image");
+	uint64_t* exit_data_size;
+	uint16_t* exit_data;
+	status = system_table->boot_table->start_image(kernel_image_handle, 
+			exit_data_size, &exit_data);
+	
+	if(status != EFI_SUCCESS){
+		log(u"Can't start kernel image");
+	}
+
+		log(u"kernel image take control");
+}
+
+void load_kernel_file(){
 
 	efi_status_t status;
 
@@ -301,10 +337,21 @@ void load_kernel(){
 	efi_status_t open_kernel_status = root_directory->open(
 			root_directory,
 			&opened_kernel_file,
-			u"vmlinux",
+			u"vmlinuz",
 			EFI_FILE_MODE_READ,
 			EFI_FILE_READ_ONLY
 			);	
+
+	if(open_kernel_status != EFI_SUCCESS){
+		log(u"Can't open kernel file");
+	}
+
+
+}
+
+void boot_elf_kernel(){
+
+	efi_status_t status;
 
 	read_fixed(system_table, opened_kernel_file, 0, 
 			sizeof(struct ElfHeader), &kernel_elf_header);
@@ -342,7 +389,7 @@ void load_kernel(){
 			&image_address);
 
 
-	system_table->out->output_string(system_table->out, u"Load kernel to memroy\n\r");
+	system_table->out->output_string(system_table->out, u"Load kernel to memory\n\r");
 	
 	for (size_t i = 0; i < kernel_elf_header.program_header_number_of_entries; ++i) {
 		struct ElfProgramHeader *phdr = &kernel_program_headers[i];
@@ -369,13 +416,19 @@ void load_kernel(){
 		reserve_memory(phdr_addr, phdr_addr + phdr->p_memsz);
 
 
-
 	}
 
 	uint64_t kernel_image_entry = image_address + kernel_elf_header.e_entry - image_begin;	
 
 	log(u"Kernel loaded to memory");
 
+		void (ELFABI *entry)(struct ReserveMemory*, size_t);
+
+		exit_boot_services();
+
+		entry = (void (ELFABI *)(struct ReserveMemory*, size_t))
+		kernel_image_entry;
+		(*entry)(main_reserve, reserves_count);
 }
 
 
@@ -388,16 +441,10 @@ efi_status_t efi_main(
 	bootloader_handle = in_bootloader_handle;
 
 	log(u"Bootloader started")	;
-	load_kernel();
-	
 
-	void(ELFABI* entry)(struct ReserveMemory*, size_t);
-	//system_table->out->clear_screen(system_table->out);
-	exit_boot_services();
-
-	entry = (void (ELFABI*)(struct ReserveMemory*,size_t))kernel_image_entry;
-	(*entry)(main_reserve, reserves_count);
-	
+	load_kernel_file();
+	//boot_elf_kernel();	
+	chainload_linux_efi_stub();
 	//bootloader_loop();
 	while(1){};
 	return 0;

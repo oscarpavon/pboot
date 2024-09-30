@@ -242,7 +242,10 @@ struct BootTable
 			efi_uint_t source_size,
 			Handle* image_handle);
 
-	void (*unused22)();
+	efi_status_t (*start_image)(Handle image_handle,
+			uint64_t * exit_data_size, 
+			uint16_t **exit_data);
+
 	void (*unused23)();
 	void (*unused24)();
 
