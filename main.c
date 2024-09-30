@@ -1,8 +1,6 @@
 #include "efi.h"
 #include "config.h"
 
-
-
 struct SystemTable* system_table;
 Handle* bootloader_handle;
 
@@ -19,6 +17,11 @@ Handle main_device;
 uint64_t kernel_image_entry;
 
 uint8_t entry_selected = 0;
+
+uint16_t* selected_kernel_name;
+uint16_t* selected_kernel_parameters;
+
+uint8_t number_of_entries = 0;
 
 
 void log(uint16_t* text){
@@ -131,9 +134,8 @@ efi_status_t read_fixed(
 }
 
 void print_entries(){
-	uint8_t number_of_entries = sizeof(entries)/sizeof(entries[0]);
 	for(uint8_t i = 0; i < number_of_entries; i++){
-		system_table->out->output_string(system_table->out, entries[i].name);
+		system_table->out->output_string(system_table->out, entries[i].entry_name);
 		if(i == entry_selected){
 			system_table->out->output_string(system_table->out, u"*");
 		}
@@ -142,36 +144,8 @@ void print_entries(){
 }
 
 
-void bootloader_loop(){
 
-	if(show_bootloader){ 
-		print_entries();
-	}else{
-		system_table->out->output_string(system_table->out, u"Booting ");
-		system_table->out->output_string(system_table->out, entries[default_entry].name);
-		system_table->out->output_string(system_table->out, u"\n\r");
-	}
 
-	InputKey key_pressed;
-	while (1) {
-	
-	system_table->input->read_key_stroke(system_table->input, &key_pressed);
-
-	if(key_pressed.scan_code == KEY_CODE_UP){
-		
-		system_table->out->clear_screen(system_table->out);
-		entry_selected--;
-		print_entries();
-	}
-	if(key_pressed.scan_code == KEY_CODE_DOWN){
-		
-		system_table->out->clear_screen(system_table->out);
-		entry_selected++;
-		print_entries();
-	}
-
-	}
-}
 void chainload_linux_efi_stub(){
 	efi_status_t status;
 	status = opened_kernel_file->set_position(opened_kernel_file, 0xFFFFFFFFFFFFFFFF)	;
@@ -196,7 +170,7 @@ void chainload_linux_efi_stub(){
 		log(u"Can't load kernel image");
 	}
 
-	uint16_t * arguments = u"root=/dev/nvme0n1p3 rw fstype=ext4";
+	uint16_t * arguments = selected_kernel_parameters;
 	size_t arguments_size = u16strlen(arguments);
 	arguments_size = arguments_size * sizeof(uint16_t);	
 
@@ -274,7 +248,7 @@ void load_kernel_file(){
 	efi_status_t open_kernel_status = root_directory->open(
 			root_directory,
 			&opened_kernel_file,
-			u"vmlinuz",
+			selected_kernel_name,
 			EFI_FILE_MODE_READ,
 			EFI_FILE_READ_ONLY
 			);	
@@ -287,6 +261,50 @@ void load_kernel_file(){
 }
 
 
+void boot_entry(){
+	
+	selected_kernel_name = entries[entry_selected].kernel_name;
+	selected_kernel_parameters = entries[entry_selected].kernel_parameters;
+		
+	load_kernel_file();
+	chainload_linux_efi_stub();
+
+}
+
+void enter_in_menu_loop(){
+	
+	system_table->out->clear_screen(system_table->out);
+
+	print_entries();
+
+	InputKey key_pressed;
+	while (1) {
+	
+	system_table->input->read_key_stroke(system_table->input, &key_pressed);
+
+	if(key_pressed.scan_code == KEY_CODE_UP){
+		if(entry_selected > 0){
+			system_table->out->clear_screen(system_table->out);
+			entry_selected--;
+			print_entries();
+		}
+	}
+	if(key_pressed.scan_code == KEY_CODE_DOWN){
+		if(entry_selected < number_of_entries-1){//-1 because start at 0
+			system_table->out->clear_screen(system_table->out);
+			entry_selected++;
+			print_entries();
+		}	
+	}
+	
+	if(key_pressed.scan_code == KEY_CODE_RIGHT){
+		system_table->out->clear_screen(system_table->out);
+		boot_entry();		
+	}
+
+	}
+}
+
 efi_status_t efi_main(
 	Handle in_bootloader_handle, struct SystemTable *in_system_table)
 {
@@ -294,11 +312,25 @@ efi_status_t efi_main(
 	system_table = in_system_table;
 
 	bootloader_handle = in_bootloader_handle;
+	
+	number_of_entries = sizeof(entries)/sizeof(entries[0]);
+
+	entry_selected = default_entry;
+	selected_kernel_name = entries[entry_selected].kernel_name;
+	selected_kernel_parameters = entries[entry_selected].kernel_parameters;
+
+
+	InputKey key_pressed;
+	
+	system_table->input->read_key_stroke(system_table->input, &key_pressed);
+
+	if(key_pressed.scan_code == KEY_CODE_LEFT){
+		enter_in_menu_loop();
+	}
 
 	load_kernel_file();
 	chainload_linux_efi_stub();
-	//bootloader_loop();
-	while(1){};
+
 	return 0;
 }
 

@@ -15,7 +15,9 @@ typedef unsigned char uint8_t ;
 #define UINT64_MAX		(__UINT64_C(18446744073709551615))
 
 typedef struct {
-	uint16_t *name;
+	uint16_t *entry_name;
+	uint16_t *kernel_name;
+	uint16_t *kernel_parameters;
 }BootLoaderEntry;
 
 #endif
