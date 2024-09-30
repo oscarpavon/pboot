@@ -272,8 +272,8 @@ struct BootTable
 	efi_status_t (*close_protocol)(
 		Handle,
 		struct GUID *,
-		Handle,
-		Handle);
+		Handle agent_handle,
+		Handle controller_handle);
 	void (*unused33)();
 
 	// Library Services

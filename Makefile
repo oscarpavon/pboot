@@ -17,6 +17,9 @@ BOOTX64.EFI: main.o
 
 -include $(SRCS:.c=.d)
 
-.PHONY: clean all default
+.PHONY: clean all default install
 
-all: BOOTX64.EFI
+install:
+	cp /root/boot/disk/EFI/BOOT/BOOTX64.EFI /boot/EFI/PAVON/pavonx64.efi
+
+all: BOOTX64.EFI install

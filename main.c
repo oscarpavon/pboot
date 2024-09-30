@@ -3,7 +3,6 @@
 #include "elf.h"
 
 
-#define ELFABI __attribute__((sysv_abi))
 
 struct SystemTable* system_table;
 Handle* bootloader_handle;
@@ -16,6 +15,9 @@ struct FileSystemProtocol* root_file_system;
 struct FileProtocol* root_directory;
 	
 struct LoadedImageProtocol* bootloader_image;
+Handle kernel_image_handle;
+
+Handle main_device;
 
 uint64_t kernel_image_entry;
 
@@ -79,6 +81,16 @@ static void exit_boot_services(){
 
 	//system_table->boot_table->free_pool(mmap);
 
+}
+
+
+size_t u16strlen(const uint16_t *str)
+{
+	const uint16_t *pos = str;
+
+	while (*pos++)
+		;
+	return pos - str - 1;
 }
 
 void *set_memory(void *pointer, int value, size_t size)
@@ -279,24 +291,54 @@ void chainload_linux_efi_stub(){
 	read_fixed(system_table, opened_kernel_file, 0,
 			kernel_file_size, kernel_memory_allocated);
 	
-	Handle kernel_image_handle;
 	status = system_table->boot_table->image_load(false, bootloader_handle, bootloader_image->file_path, kernel_memory_allocated, 
 			kernel_file_size, &kernel_image_handle);
 	if(status != EFI_SUCCESS){
 		log(u"Can't load kernel image");
 	}
 
-		log(u"loaded kernel image");
-	uint64_t* exit_data_size;
-	uint16_t* exit_data;
-	status = system_table->boot_table->start_image(kernel_image_handle, 
-			exit_data_size, &exit_data);
+	uint16_t * arguments = u"root=/dev/nvme0n1p3 rw fstype=ext4";
+	//uint16_t * arguments = u"quiet";
+	size_t arguments_size = u16strlen(arguments);
+	arguments_size = arguments_size * sizeof(uint16_t);	
+
+	uint16_t* arguments_memory;
+	system_table->boot_table->allocate_pool(
+			EFI_LOADER_DATA, 
+			arguments_size, 
+			(void **)&arguments_memory
+			);
+
+	copy_memory(arguments_memory, arguments,
+		arguments_size);
+
+	log(arguments_memory);
+
+	//passing arguments
+	struct GUID loaded_image_guid = EFI_LOADED_IMAGE_PROTOCOL_GUID;
+	
+	struct LoadedImageProtocol* kernel_image;
+	status = system_table->boot_table->open_protocol(kernel_image_handle,
+			&loaded_image_guid,
+			(void**)&kernel_image,
+			kernel_image_handle,
+			0,
+			EFI_OPEN_PROTOCOL_BY_HANDLE_PROTOCOL)	;
+	if(status != EFI_SUCCESS){
+		log(u"Can't get image");
+	}
+
+	kernel_image->device = main_device;
+	kernel_image->load_options = arguments_memory;
+	kernel_image->load_options_size = arguments_size;
+
+	status = system_table->boot_table->start_image(kernel_image_handle, 0, 0);
 	
 	if(status != EFI_SUCCESS){
 		log(u"Can't start kernel image");
 	}
 
-		log(u"kernel image take control");
+
 }
 
 void load_kernel_file(){
@@ -308,18 +350,18 @@ void load_kernel_file(){
 	
 	system_table->boot_table->open_protocol(bootloader_handle,
 			&loaded_image_guid,
-			&bootloader_image,
+			(void **)&bootloader_image,
 			bootloader_handle,
 			0,
 			EFI_OPEN_PROTOCOL_BY_HANDLE_PROTOCOL)	;
 
-	Handle device = bootloader_image->device;
+	main_device = bootloader_image->device;
 
 	struct GUID file_system_guid = EFI_SIMPLE_FILE_SYSTEM_PROTOCOL_GUID;
 
-	system_table->boot_table->open_protocol(device,
+	system_table->boot_table->open_protocol(main_device,
 			&file_system_guid,
-			&root_file_system,
+			(void**)&root_file_system,
 			bootloader_handle,
 			0,
 			EFI_OPEN_PROTOCOL_BY_HANDLE_PROTOCOL)	;
