@@ -22,4 +22,4 @@ BOOTX64.EFI: main.o
 install:
 	cp /root/boot/disk/EFI/BOOT/BOOTX64.EFI /boot/EFI/PAVON/pavonx64.efi
 
-all: BOOTX64.EFI install
+all: BOOTX64.EFI

@@ -1,5 +1,6 @@
 #include "efi.h"
 #include "config.h"
+#include "types.h"
 
 struct SystemTable* system_table;
 Handle* bootloader_handle;
@@ -280,26 +281,31 @@ void enter_in_menu_loop(){
 	InputKey key_pressed;
 	while (1) {
 	
-	system_table->input->read_key_stroke(system_table->input, &key_pressed);
+	efi_status status;
+	status = system_table->input->read_key_stroke(system_table->input, &key_pressed);
 
-	if(key_pressed.scan_code == KEY_CODE_UP){
-		if(entry_selected > 0){
-			system_table->out->clear_screen(system_table->out);
-			entry_selected--;
-			print_entries();
+	if(status == EFI_SUCCESS){
+
+		if(key_pressed.scan_code == KEY_CODE_UP){
+			if(entry_selected > 0){
+				entry_selected--;
+			}
 		}
-	}
-	if(key_pressed.scan_code == KEY_CODE_DOWN){
-		if(entry_selected < number_of_entries-1){//-1 because start at 0
-			system_table->out->clear_screen(system_table->out);
-			entry_selected++;
-			print_entries();
-		}	
-	}
+
+		if(key_pressed.scan_code == KEY_CODE_DOWN){
+
+			if(entry_selected < number_of_entries-1){//-1 because start at 0
+				entry_selected++;
+			}	
+		}
 	
-	if(key_pressed.scan_code == KEY_CODE_RIGHT){
 		system_table->out->clear_screen(system_table->out);
-		boot_entry();		
+		print_entries();
+	
+		if(key_pressed.scan_code == KEY_CODE_RIGHT){
+			system_table->out->clear_screen(system_table->out);
+			boot_entry();		
+		}
 	}
 
 	}
