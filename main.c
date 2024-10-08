@@ -330,7 +330,7 @@ efi_status_t efi_main(
 	
 	system_table->input->read_key_stroke(system_table->input, &key_pressed);
 
-	if(key_pressed.scan_code == KEY_CODE_LEFT){
+	if(key_pressed.scan_code == KEY_CODE_LEFT || show_menu == true){
 		enter_in_menu_loop();
 	}
 
