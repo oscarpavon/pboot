@@ -11,6 +11,7 @@ static const BootLoaderEntry entries[] = {
 	{u"Pavon sinit usb off", u"vmlinuz", u"quiet root=/dev/nvme0n1p3 rw fstype=ext4 init=/sbin/pinit usbcore.authorized_default=0"},
 	{u"Pavon /sbin/pinit", u"vmlinuz", u"root=/dev/nvme0n1p3 rw fstype=ext4 init=/sbin/pinit"},
 	{u"Pavon pinit quiet", u"vmlinuz", u"quiet root=/dev/nvme0n1p3 rw fstype=ext4"},
+	{u"PKernel", u"pkernel", u""},
 	{u"Pavon sinit", u"pavonlinuz", u"quiet root=/dev/nvme0n1p3 rw fstype=ext4 init=/sbin/sinit"},
 	{u"Gentoo", u"vmlinuz", u"quiet root=/dev/nvme0n1p2 ro fstype=ext4"},
 };
