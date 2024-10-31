@@ -7,7 +7,7 @@ typedef unsigned int uint32_t;
 typedef unsigned short int uint16_t ;
 typedef unsigned char uint8_t ;
 
-#define bool _Bool
+#define bool uint8_t
 #define true 1
 #define false 0
 

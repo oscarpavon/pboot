@@ -1,7 +1,7 @@
 #include "types.h"
 
-uint8_t default_entry = 0;
-bool show_menu = true;
+uint8_t default_entry = 6;
+bool show_menu = false;
 
 static const BootLoaderEntry entries[] = {
 	{u"Pavon VM", u"vmlinuz", u"initcall_debug quiet root=/dev/sda1 rw fstype=vfat init=/sbin/init"},
