@@ -73,7 +73,7 @@ static void exit_boot_services(){
 }
 
 
-uint16_t u16strlen(const uint16_t *str)
+size_t u16strlen(const uint16_t *str)
 {
 	const uint16_t *pos = str;
 
@@ -82,21 +82,21 @@ uint16_t u16strlen(const uint16_t *str)
 	return pos - str - 1;
 }
 
-void *set_memory(void *pointer, int value, uint16_t size)
+void *set_memory(void *pointer, int value, size_t size)
 {
 	char *to = pointer;
 
-	for (uint16_t i = 0; i < size; ++i)
+	for (size_t i = 0; i < size; ++i)
 		*to++ = value;
 	return pointer;
 }
 
-void *copy_memory(void *destination, const void *source, uint16_t size)
+void *copy_memory(void *destination, const void *source, size_t size)
 {
 	const char *from = source;
 	char *to = destination;
 
-	for (uint16_t i = 0; i < size; ++i)
+	for (size_t i = 0; i < size; ++i)
 		*to++ = *from++;
 	return destination;
 }
@@ -106,12 +106,12 @@ efi_status_t read_fixed(
 	struct SystemTable *system,
 	struct FileProtocol *file,
 	uint64_t offset,
-	uint16_t size,
+	size_t size,
 	void *dst)
 {
 	efi_status_t status = EFI_SUCCESS;
 	unsigned char *buf = dst;
-	uint16_t read = 0;
+	size_t read = 0;
 
 	status = file->set_position(file, offset);
 	if (status != EFI_SUCCESS) {
@@ -172,7 +172,7 @@ void chainload_linux_efi_stub(){
 	}
 
 	uint16_t * arguments = selected_kernel_parameters;
-	uint16_t arguments_size = u16strlen(arguments);
+	size_t arguments_size = u16strlen(arguments);
 	arguments_size = arguments_size * sizeof(uint16_t);	
 
 	uint16_t* arguments_memory;
