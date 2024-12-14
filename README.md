@@ -21,3 +21,27 @@ to show the menu if you want to choose an entry
 
 This bootloader doesn't need any more feature
 Do one thing and do it well
+
+## Build
+```
+make
+```
+
+## Testing in Virtual Machine
+```
+./start
+```
+
+## Installation
+```
+mount -t efivarfs none /sys/firmware/efi/efivars
+```
+```
+mkdir -p /boot/EFI/pboot
+```
+```
+cp pboot /boot/EFI/pboot/pboot.efi
+```
+```
+efibootmgr --create --disk /dev/nvme0n1 --part 1 -L "pboot" --loader '\EFI\pboot\pboot.efi'
+```
