@@ -1,20 +1,10 @@
+;we use fasm to generate the EFI header. None assembly here
 format pe64 efi
 section '.text' code executable readable
 
 entry $
-  FILE "pboot.bin" 
-  call print_hello
-  jmp $
+  FILE "pboot.bin" ;this is the binary compiled with gcc
+  jmp $ ;we never got here
 
 
 
-print_hello:
-  sub rsp,32
-  mov rcx,[rdx + 64]
-  mov rax,[rcx + 8]
-  mov rdx,string
-  call rax
-  add rsp,32
-  ret
-
-string du 'Hello, World! from fasm',13,10,0
