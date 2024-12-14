@@ -2,4 +2,5 @@ BOOTX64.EFI
 pboot
 *.d
 *.o
+*.bin
 NvVars

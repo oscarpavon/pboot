@@ -2,7 +2,6 @@
 #define __EFI_H__
 
 #include "types.h"
-#include <stdint.h>
 
 #define EFI_LOADED_IMAGE_PROTOCOL_GUID \
 	{ 0x5b1b31a1, 0x9562, 0x11d2, \
