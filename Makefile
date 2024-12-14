@@ -16,6 +16,6 @@ clean:
 	rm -f *.d
 	rm -f pboot
 
-release:
-	cp pboot /boot/EFI/PAVON/pavonx64.efi
+install:
+	cp pboot /boot/EFI/pboot/pboot.efi
 
