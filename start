@@ -1,0 +1,6 @@
+#!/bin/sh
+cp pboot ./virtual_machine/disk/EFI/BOOT/BOOTX64.EFI
+
+qemu-system-x86_64 -enable-kvm -bios ./virtual_machine/uefi.bios\
+  -drive file=fat:rw:./virtual_machine/disk/,format=raw,media=disk\
+  -m 256M
