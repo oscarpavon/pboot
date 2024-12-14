@@ -256,6 +256,7 @@ void load_kernel_file(){
 
 	if(open_kernel_status != EFI_SUCCESS){
 		log(u"Can't open kernel file");
+		log(selected_kernel_name);
 	}
 
 
