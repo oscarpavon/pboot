@@ -1,29 +1,20 @@
-CC := clang
-LD := ld.lld
+CFLAGS := -ffreestanding -fno-stack-check -fno-stack-protector -fPIC -fshort-wchar -mno-red-zone -maccumulate-outgoing-args -mabi=ms
 
-CFLAGS := -ffreestanding -MMD -mno-red-zone -std=c11 \
-	-target x86_64-unknown-windows
-LDFLAGS := -flavor link -subsystem:efi_application -entry:efi_main
-
-GCCFLAGS := -ffreestanding -fno-stack-check -fno-stack-protector -fPIC -fshort-wchar -mno-red-zone -maccumulate-outgoing-args -mabi=ms
 
 all: pboot
 
 start.o: start.c
-	cc $(GCCFLAGS) -c start.c
+	cc $(CFLAGS) -c start.c
 
-pboot.bin: start.o
-	ld start.o -o pboot.bin -T binary.ld
+pboot.bin: start.o main.o
+	ld start.o main.o -nostdlib -znocombreloc -shared -Bsymbolic -o pboot.bin -T binary.ld 
 
 pboot: efi.s pboot.bin
 	fasm efi.s pboot
 
 
-clang: main.o
-	$(LD) $(LDFLAGS) main.o -out:pboot
-
 main.o: main.c config.h types.h efi.h
-	$(CC) $(CFLAGS) -c main.c -o main.o
+	cc $(CFLAGS) -c main.c
 
 clean:
 	rm -f *.o

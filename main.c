@@ -2,73 +2,33 @@
 #include "config.h"
 #include "types.h"
 
-struct SystemTable* system_table;
-Handle* bootloader_handle;
+static SystemTable* system_table;
+static Handle* bootloader_handle;
 
-struct FileProtocol* opened_kernel_file;
+static struct FileProtocol* opened_kernel_file;
 
-struct FileSystemProtocol* root_file_system;
-struct FileProtocol* root_directory;
+static struct FileSystemProtocol* root_file_system;
+static struct FileProtocol* root_directory;
 	
-struct LoadedImageProtocol* bootloader_image;
-Handle kernel_image_handle;
+static struct LoadedImageProtocol* bootloader_image;
+static Handle kernel_image_handle;
 
-Handle main_device;
+static Handle main_device;
 
-uint64_t kernel_image_entry;
+static uint64_t kernel_image_entry;
 
-uint8_t entry_selected = 0;
+static uint8_t entry_selected = 0;
 
-uint16_t* selected_kernel_name;
-uint16_t* selected_kernel_parameters;
+static uint16_t* selected_kernel_name;
+static uint16_t* selected_kernel_parameters;
 
-uint8_t number_of_entries = 0;
+static uint8_t number_of_entries = 0;
 
 
 void log(uint16_t* text){
 	
 	system_table->out->output_string(system_table->out,text);
 	system_table->out->output_string(system_table->out,u"\n\r");
-
-}
-
-static void exit_boot_services(){
-
-	struct MemoryDescriptor *mmap;
-	efi_uint_t mmap_size = 4096;
-	efi_uint_t mmap_key;
-	efi_uint_t desc_size;
-	uint32_t desc_version;
-	efi_status_t status;
-
-	while (1) {
-		status = system_table->boot_table->allocate_pool(
-			EFI_LOADER_DATA,
-			mmap_size,
-			(void **)&mmap);
-		if(status != EFI_SUCCESS){
-			log(u"Can't allocate memory for memory map");
-		}
-
-		status = system_table->boot_table->get_memory_map(
-			&mmap_size,
-			mmap,
-			&mmap_key,
-			&desc_size,
-			&desc_version);
-		if (status == EFI_SUCCESS){
-			break;
-		}
-
-
-	}
-
-	status = system_table->boot_table->exit_boot_services(bootloader_handle, 
-			mmap_key);
-	if(status != EFI_SUCCESS){
-		log(u"ERROR boot service not closed");
-		return;
-	}
 
 }
 
@@ -143,8 +103,6 @@ void print_entries(){
 		system_table->out->output_string(system_table->out, u"\n\r");
 	}
 }
-
-
 
 
 void chainload_linux_efi_stub(){
@@ -256,7 +214,9 @@ void load_kernel_file(){
 
 	if(open_kernel_status != EFI_SUCCESS){
 		log(u"Can't open kernel file");
+		log(u"File name:");
 		log(selected_kernel_name);
+		while (1) {};
 	}
 
 
@@ -312,8 +272,7 @@ void enter_in_menu_loop(){
 	}
 }
 
-efi_status_t efi_main(
-	Handle in_bootloader_handle, struct SystemTable *in_system_table)
+void main(Handle in_bootloader_handle, SystemTable *in_system_table)
 {
 
 	system_table = in_system_table;
@@ -323,14 +282,15 @@ efi_status_t efi_main(
 	number_of_entries = sizeof(entries)/sizeof(entries[0]);
 
 	entry_selected = default_entry;
-	selected_kernel_name = entries[entry_selected].kernel_name;
-	selected_kernel_parameters = entries[entry_selected].kernel_parameters;
-
+	//selected_kernel_name = entries[entry_selected].kernel_name;
+	selected_kernel_name = u"pLinux";
+	//selected_kernel_parameters = entries[entry_selected].kernel_parameters;
+	selected_kernel_parameters = u"";
 
 	InputKey key_pressed;
 	
 	system_table->input->read_key_stroke(system_table->input, &key_pressed);
-
+	
 	if(key_pressed.scan_code == KEY_CODE_LEFT || show_menu == true){
 		enter_in_menu_loop();
 	}
@@ -338,7 +298,7 @@ efi_status_t efi_main(
 	load_kernel_file();
 	chainload_linux_efi_stub();
 
-	return 0;
+	//we never got here
 }
 
 

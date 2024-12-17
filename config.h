@@ -1,9 +1,9 @@
 #include "types.h"
 
-uint8_t default_entry = 0;
-bool show_menu = false;
+static uint8_t default_entry = 0;
+static bool show_menu = false;
 
-static const BootLoaderEntry entries[] = {
+static const BootLoaderEntry entries[13] = {
 	{u"Pavon Linux", u"pLinux", u"quiet root=/dev/nvme0n1p3 rw fstype=ext4 init=/pinit"},
 	{u"Gentoo", u"pLinux", u"quiet root=/dev/nvme0n1p2 ro fstype=ext4"},
 	{u"PKernel", u"pboot", u""},
