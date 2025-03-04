@@ -1,11 +1,14 @@
 #include "efi.h"
 #include "config.h"
 #include "types.h"
+#include <stdint.h>
 
 static Handle* bootloader_handle;
 static SystemTable* system_table;
 
 static struct FileProtocol* opened_kernel_file;
+//static struct FileProtocol opened_kernel_file;
+static struct FileProtocol kernel_file;
 
 static struct FileSystemProtocol* root_file_system;
 static struct FileProtocol* root_directory;
@@ -206,27 +209,26 @@ void hang(){
 	while (1) {};
 }
 
-void load_kernel_file(){
-	
-	setup_file_system();
+void open_file(FileProtocol** file, uint16_t* name){
 
-	Status status;
-
-	Status open_kernel_status = root_directory->open(
+	Status status = root_directory->open(
 			root_directory,
-			&opened_kernel_file,
-			selected_kernel_name,
+			file,
+			name,
 			EFI_FILE_MODE_READ,
 			EFI_FILE_READ_ONLY
 			);	
 
-	if(open_kernel_status != EFI_SUCCESS){
-		log(u"Can't open kernel file");
+	if(status != EFI_SUCCESS){
+		log(u"Can't open file");
 		log(u"File name:");
-		log(selected_kernel_name);
+		log(name);
 		hang();
 	}
+}
 
+void load_kernel_file(){
+	open_file(&opened_kernel_file,selected_kernel_name);
 }
 
 
@@ -285,7 +287,9 @@ void main(Handle in_bootloader_handle, SystemTable *in_system_table)
 	system_table = in_system_table;
 
 	bootloader_handle = in_bootloader_handle;
-	
+
+	setup_file_system();
+
 	number_of_entries = sizeof(entries)/sizeof(entries[0]);
 
 	entry_selected = default_entry;
