@@ -2,8 +2,8 @@
 #include "config.h"
 #include "types.h"
 
-static SystemTable* system_table;
 static Handle* bootloader_handle;
+static SystemTable* system_table;
 
 static struct FileProtocol* opened_kernel_file;
 
@@ -169,9 +169,7 @@ void chainload_linux_efi_stub(){
 
 }
 
-void load_kernel_file(){
-
-	efi_status_t status;
+void setup_file_system(){
 
 	//get loaded image to get device path
 	struct GUID loaded_image_guid = EFI_LOADED_IMAGE_PROTOCOL_GUID;
@@ -195,16 +193,26 @@ void load_kernel_file(){
 			EFI_OPEN_PROTOCOL_BY_HANDLE_PROTOCOL)	;
 
 
-	efi_status_t open_volumen_status = 
+	Status open_volumen_status = 
 		root_file_system->open_volume(root_file_system, &root_directory);
 
 	if(open_volumen_status != EFI_SUCCESS){
-
-		system_table->out->output_string(system_table->out, u"Open volume error \n\r");
+		log(u"Open volume error");
 	}
 
+}
 
-	efi_status_t open_kernel_status = root_directory->open(
+void hang(){
+	while (1) {};
+}
+
+void load_kernel_file(){
+	
+	setup_file_system();
+
+	Status status;
+
+	Status open_kernel_status = root_directory->open(
 			root_directory,
 			&opened_kernel_file,
 			selected_kernel_name,
@@ -216,9 +224,8 @@ void load_kernel_file(){
 		log(u"Can't open kernel file");
 		log(u"File name:");
 		log(selected_kernel_name);
-		while (1) {};
+		hang();
 	}
-
 
 }
 
