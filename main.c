@@ -116,10 +116,10 @@ void allocate_memory(uint64_t size, void** memory){
 
 void* read_file(FileProtocol* file){
 	void* memory;
-  uint64_t file_size = get_file_size(opened_kernel_file);
+  uint64_t file_size = get_file_size(file);
   allocate_memory(file_size , &memory);
 
-  read_file_to_memory(opened_kernel_file, file_size, memory);
+  read_file_to_memory(file, file_size, memory);
 
 	return memory;	
 }
@@ -279,6 +279,47 @@ void enter_in_menu_loop(){
 	}
 }
 
+void load_configuration(){
+	FileProtocol* config_file;
+	open_file(&config_file, u"pboot.conf");
+	char* config = read_file(config_file);
+
+	uint64_t config_file_size = get_file_size(config_file);
+	log(u"config file size");
+	char size_char = config_file_size+'0';
+	uint16_t size_unicode;
+	size_unicode = (short)size_char;
+	log(&size_unicode);
+	
+
+	void* unicode_config;
+	allocate_memory(config_file_size, &unicode_config);
+
+
+	//fill memory by null character
+	for(int i = 0; i < config_file_size; i++){
+		short* data = (short*)unicode_config;
+		char zero = '\0';
+		data[i] = (short)zero;
+	}
+	
+	//convert file to unicode 16
+	for(int i = 0; i < config_file_size-1; i++){
+		short* data = (short*)unicode_config;
+		data[i] = (short)config[i];
+	}
+
+
+	uint16_t* new_config = (uint16_t*)unicode_config;
+
+	//log(unicode_config);
+
+	system_table->out->output_string(system_table->out,unicode_config);
+	log(u"configuration");
+	hang();
+
+}
+
 void main(Handle in_bootloader_handle, SystemTable *in_system_table)
 {
 
@@ -287,6 +328,8 @@ void main(Handle in_bootloader_handle, SystemTable *in_system_table)
 	bootloader_handle = in_bootloader_handle;
 
 	setup_file_system();
+
+	load_configuration();
 
 	number_of_entries = sizeof(entries)/sizeof(entries[0]);
 
