@@ -65,7 +65,7 @@ void *copy_memory(void *destination, const void *source, size_t size)
 }
 
 
- Status read_file(
+ Status read_file_to_memory(
 	struct FileProtocol *file,
 	size_t size,
 	void *destination)
@@ -114,16 +114,22 @@ void allocate_memory(uint64_t size, void** memory){
 			EFI_LOADER_DATA, size, memory);
 }
 
+void* read_file(FileProtocol* file){
+	void* memory;
+  uint64_t file_size = get_file_size(opened_kernel_file);
+  allocate_memory(file_size , &memory);
+
+  read_file_to_memory(opened_kernel_file, file_size, memory);
+
+	return memory;	
+}
+
 void chainload_linux_efi_stub() {
   Status status;
 
-  uint64_t kernel_file_size = get_file_size(opened_kernel_file);
+  void *kernel_memory_allocated = read_file(opened_kernel_file);
 
-  void *kernel_memory_allocated;
-
-  allocate_memory(kernel_file_size, &kernel_memory_allocated);
-
-  read_file(opened_kernel_file, kernel_file_size, kernel_memory_allocated);
+	uint64_t kernel_file_size = get_file_size(opened_kernel_file);
 
   status = system_table->boot_table->image_load(
       false, bootloader_handle, bootloader_image->file_path,
