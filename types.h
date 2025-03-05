@@ -7,9 +7,9 @@
 #include <stddef.h>
 
 typedef struct {
-	uint16_t *entry_name;
-	uint16_t *kernel_name;
-	uint16_t *kernel_parameters;
+	uint16_t entry_name[20];
+	uint16_t kernel_name[20];
+	uint16_t kernel_parameters[100];
 }BootLoaderEntry;
 
 #endif

@@ -316,7 +316,7 @@ void load_configuration(){
 
 	system_table->out->output_string(system_table->out,unicode_config);
 	log(u"configuration");
-	hang();
+	//hang();
 
 }
 
@@ -329,15 +329,13 @@ void main(Handle in_bootloader_handle, SystemTable *in_system_table)
 
 	setup_file_system();
 
-	load_configuration();
+	//load_configuration();
 
 	number_of_entries = sizeof(entries)/sizeof(entries[0]);
 
 	entry_selected = default_entry;
-	//selected_kernel_name = entries[entry_selected].kernel_name;
-	selected_kernel_name = u"pLinux";
-	//selected_kernel_parameters = entries[entry_selected].kernel_parameters;
-	selected_kernel_parameters = u"";
+	selected_kernel_name = entries[entry_selected].kernel_name;
+	selected_kernel_parameters = entries[entry_selected].kernel_parameters;
 
 	InputKey key_pressed;
 	
