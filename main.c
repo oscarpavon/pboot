@@ -254,13 +254,13 @@ void enter_in_menu_loop(){
 
 	if(status == EFI_SUCCESS){
 
-		if(key_pressed.scan_code == KEY_CODE_UP){
+		if(key_pressed.scan_code == KEY_CODE_UP || key_pressed.unicode_char == u'w'){
 			if(entry_selected > 0){
 				entry_selected--;
 			}
 		}
 
-		if(key_pressed.scan_code == KEY_CODE_DOWN){
+		if(key_pressed.scan_code == KEY_CODE_DOWN || key_pressed.unicode_char == u's'){
 
 			if(entry_selected < number_of_entries-1){//-1 because start at 0
 				entry_selected++;
@@ -270,7 +270,7 @@ void enter_in_menu_loop(){
 		system_table->out->clear_screen(system_table->out);
 		print_entries();
 	
-		if(key_pressed.scan_code == KEY_CODE_RIGHT){
+		if(key_pressed.scan_code == KEY_CODE_RIGHT || key_pressed.unicode_char == u'd'){
 			system_table->out->clear_screen(system_table->out);
 			boot_entry();		
 		}
@@ -319,35 +319,33 @@ void load_configuration(){
 
 }
 
-void main(Handle in_bootloader_handle, SystemTable *in_system_table)
-{
+void main(Handle in_bootloader_handle, SystemTable *in_system_table) {
 
-	system_table = in_system_table;
+  system_table = in_system_table;
 
-	bootloader_handle = in_bootloader_handle;
+  bootloader_handle = in_bootloader_handle;
 
-	setup_file_system();
+  setup_file_system();
 
-	load_configuration();
+  load_configuration();
 
-	number_of_entries = sizeof(entries)/sizeof(entries[0]);
+  number_of_entries = sizeof(entries) / sizeof(entries[0]);
 
-	entry_selected = default_entry;
-	selected_kernel_name = entries[entry_selected].kernel_name;
-	selected_kernel_parameters = entries[entry_selected].kernel_parameters;
+  entry_selected = default_entry;
+  selected_kernel_name = entries[entry_selected].kernel_name;
+  selected_kernel_parameters = entries[entry_selected].kernel_parameters;
 
-	InputKey key_pressed;
-	
-	system_table->input->read_key_stroke(system_table->input, &key_pressed);
-	
-	if(key_pressed.scan_code == KEY_CODE_LEFT || show_menu == true){
-		enter_in_menu_loop();
-	}
+  InputKey key_pressed;
 
-	load_kernel_file();
-	chainload_linux_efi_stub();
+  system_table->input->read_key_stroke(system_table->input, &key_pressed);
 
-	//we never got here
+  if (key_pressed.scan_code == KEY_CODE_LEFT ||
+      key_pressed.unicode_char == u'a' || show_menu == true) {
+    enter_in_menu_loop();
+  }
+
+  load_kernel_file();
+  chainload_linux_efi_stub();
+
+  // we never got here
 }
-
-
