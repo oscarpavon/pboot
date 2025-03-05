@@ -279,18 +279,7 @@ void enter_in_menu_loop(){
 	}
 }
 
-void load_configuration(){
-	FileProtocol* config_file;
-	open_file(&config_file, u"pboot.conf");
-	char* config = read_file(config_file);
-
-	uint64_t config_file_size = get_file_size(config_file);
-	log(u"config file size");
-	char size_char = config_file_size+'0';
-	uint16_t size_unicode;
-	size_unicode = (short)size_char;
-	log(&size_unicode);
-	
+void parse_configuration(uint64_t config_file_size, char* config){
 
 	void* unicode_config;
 	allocate_memory(config_file_size, &unicode_config);
@@ -315,8 +304,18 @@ void load_configuration(){
 	//log(unicode_config);
 
 	system_table->out->output_string(system_table->out,unicode_config);
-	log(u"configuration");
+	log(u"configuration loaded");
 	//hang();
+}
+
+void load_configuration(){
+	FileProtocol* config_file;
+	open_file(&config_file, u"pboot.conf");
+	char* config = read_file(config_file);
+
+	uint64_t config_file_size = get_file_size(config_file);
+	uint8_t entry = *config - '0';
+	default_entry = entry;
 
 }
 
@@ -329,7 +328,7 @@ void main(Handle in_bootloader_handle, SystemTable *in_system_table)
 
 	setup_file_system();
 
-	//load_configuration();
+	load_configuration();
 
 	number_of_entries = sizeof(entries)/sizeof(entries[0]);
 
