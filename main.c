@@ -65,22 +65,14 @@ void *copy_memory(void *destination, const void *source, size_t size)
 }
 
 
-efi_status_t read_fixed(
-	struct SystemTable *system,
+ Status read_file(
 	struct FileProtocol *file,
-	uint64_t offset,
 	size_t size,
-	void *dst)
+	void *destination)
 {
-	efi_status_t status = EFI_SUCCESS;
-	unsigned char *buf = dst;
+	Status status = EFI_SUCCESS;
+	unsigned char *buf = destination;
 	size_t read = 0;
-
-	status = file->set_position(file, offset);
-	if (status != EFI_SUCCESS) {
-
-		return status;
-	}
 
 	while (read < size) {
 		efi_uint_t remains = size - read;
@@ -107,12 +99,21 @@ void print_entries(){
 	}
 }
 
+uint64_t get_file_size(FileProtocol* file){
+	Status status;
+	status = file->set_position(file, 0xFFFFFFFFFFFFFFFF)	;
+	uint64_t file_size;
+	status = file->get_position(file, &file_size);
+	status = file->set_position(file, 0);
+	return file_size;
+}
+
 
 void chainload_linux_efi_stub(){
-	efi_status_t status;
-	status = opened_kernel_file->set_position(opened_kernel_file, 0xFFFFFFFFFFFFFFFF)	;
+	Status status;
+
 	uint64_t kernel_file_size;
-	status = opened_kernel_file->get_position(opened_kernel_file, &kernel_file_size);
+	kernel_file_size = get_file_size(opened_kernel_file);
 
 	uint64_t *kernel_memory_allocated;
 
@@ -123,8 +124,7 @@ void chainload_linux_efi_stub(){
 			);
 
 
-	read_fixed(system_table, opened_kernel_file, 0,
-			kernel_file_size, kernel_memory_allocated);
+	read_file(opened_kernel_file, kernel_file_size, kernel_memory_allocated);
 	
 	status = system_table->boot_table->image_load(false, bootloader_handle, bootloader_image->file_path, kernel_memory_allocated, 
 			kernel_file_size, &kernel_image_handle);
