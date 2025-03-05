@@ -108,68 +108,60 @@ uint64_t get_file_size(FileProtocol* file){
 	return file_size;
 }
 
-
-void chainload_linux_efi_stub(){
-	Status status;
-
-	uint64_t kernel_file_size;
-	kernel_file_size = get_file_size(opened_kernel_file);
-
-	uint64_t *kernel_memory_allocated;
+void allocate_memory(uint64_t size, void** memory){
 
 	system_table->boot_table->allocate_pool(
-			EFI_LOADER_DATA, 
-			kernel_file_size, 
-			(void **)&kernel_memory_allocated
-			);
+			EFI_LOADER_DATA, size, memory);
+}
 
+void chainload_linux_efi_stub() {
+  Status status;
 
-	read_file(opened_kernel_file, kernel_file_size, kernel_memory_allocated);
-	
-	status = system_table->boot_table->image_load(false, bootloader_handle, bootloader_image->file_path, kernel_memory_allocated, 
-			kernel_file_size, &kernel_image_handle);
-	if(status != EFI_SUCCESS){
-		log(u"Can't load kernel image");
-	}
+  uint64_t kernel_file_size = get_file_size(opened_kernel_file);
 
-	uint16_t * arguments = selected_kernel_parameters;
-	size_t arguments_size = u16strlen(arguments);
-	arguments_size = arguments_size * sizeof(uint16_t);	
+  void *kernel_memory_allocated;
 
-	uint16_t* arguments_memory;
-	system_table->boot_table->allocate_pool(
-			EFI_LOADER_DATA, 
-			arguments_size, 
-			(void **)&arguments_memory
-			);
+  allocate_memory(kernel_file_size, &kernel_memory_allocated);
 
-	copy_memory(arguments_memory, arguments,
-		arguments_size);
+  read_file(opened_kernel_file, kernel_file_size, kernel_memory_allocated);
 
-	//passing arguments
-	struct GUID loaded_image_guid = EFI_LOADED_IMAGE_PROTOCOL_GUID;
-	
-	struct LoadedImageProtocol* kernel_image;
-	status = system_table->boot_table->open_protocol(kernel_image_handle,
-			&loaded_image_guid,
-			(void**)&kernel_image,
-			kernel_image_handle,
-			0,
-			EFI_OPEN_PROTOCOL_BY_HANDLE_PROTOCOL)	;
-	if(status != EFI_SUCCESS){
-		log(u"Can't get image");
-	}
+  status = system_table->boot_table->image_load(
+      false, bootloader_handle, bootloader_image->file_path,
+      kernel_memory_allocated, kernel_file_size, &kernel_image_handle);
+  if (status != EFI_SUCCESS) {
+    log(u"Can't load kernel image");
+  }
 
-	kernel_image->device = main_device;
-	kernel_image->load_options = arguments_memory;
-	kernel_image->load_options_size = arguments_size;
+  uint16_t *arguments = selected_kernel_parameters;
+  size_t arguments_size = u16strlen(arguments);
+  arguments_size = arguments_size * sizeof(uint16_t);
 
-	status = system_table->boot_table->start_image(kernel_image_handle, 0, 0);
-	
-	if(status != EFI_SUCCESS){
-		log(u"Can't start kernel image");
-	}
+  uint16_t *arguments_memory;
+  system_table->boot_table->allocate_pool(EFI_LOADER_DATA, arguments_size,
+                                          (void **)&arguments_memory);
 
+  copy_memory(arguments_memory, arguments, arguments_size);
+
+  // passing arguments
+  struct GUID loaded_image_guid = EFI_LOADED_IMAGE_PROTOCOL_GUID;
+
+  struct LoadedImageProtocol *kernel_image;
+  status = system_table->boot_table->open_protocol(
+      kernel_image_handle, &loaded_image_guid, (void **)&kernel_image,
+      kernel_image_handle, 0, EFI_OPEN_PROTOCOL_BY_HANDLE_PROTOCOL);
+  if (status != EFI_SUCCESS) {
+    log(u"Can't get image");
+  }
+
+  kernel_image->device = main_device;
+  kernel_image->load_options = arguments_memory;
+  kernel_image->load_options_size = arguments_size;
+
+  status = system_table->boot_table->start_image(kernel_image_handle, 0, 0);
+
+  if (status != EFI_SUCCESS) {
+    log(u"Can't start kernel image");
+  }
 }
 
 void setup_file_system(){
