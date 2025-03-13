@@ -148,13 +148,13 @@ typedef struct FileProtocol{
 }FileProtocol;
 
 
-struct FileSystemProtocol{
+typedef struct FileSystemProtocol{
     uint64_t revision;
     Status (*open_volume)(FileSystemProtocol* self, FileProtocol** root);
-};
+}FileSystemProtocol;
 
 
-struct LoadedImageProtocol{
+typedef struct LoadedImageProtocol{
 	uint32_t revision;
 	Handle parent;
 	SystemTable *system;
@@ -173,7 +173,7 @@ struct LoadedImageProtocol{
 	enum MemoryType image_code_type;
 	enum MemoryType image_data_type;
 	void (*unused)();
-};
+}LoadedImageProtocol;
 
 
 struct BootTable 

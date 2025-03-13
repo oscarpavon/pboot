@@ -3,4 +3,8 @@ pboot
 *.d
 *.o
 *.bin
+virtual_machine/disk/*
 NvVars
+
+!virtual_machine/disk/EFI/BOOT/README
+!virtual_machine/uefi.bios

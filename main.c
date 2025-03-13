@@ -6,17 +6,15 @@
 static Handle* bootloader_handle;
 static SystemTable* system_table;
 
-static struct FileProtocol* opened_kernel_file;
-//static struct FileProtocol opened_kernel_file;
-static struct FileProtocol kernel_file;
+static FileProtocol* opened_kernel_file;
 
-static struct FileSystemProtocol* root_file_system;
-static struct FileProtocol* root_directory;
+static FileProtocol kernel_file;
+
+static FileSystemProtocol* root_file_system;
+static FileProtocol* root_directory;
 	
-static struct LoadedImageProtocol* bootloader_image;
+static LoadedImageProtocol* bootloader_image;
 static Handle kernel_image_handle;
-
-static Handle main_device;
 
 static uint64_t kernel_image_entry;
 
@@ -159,7 +157,7 @@ void chainload_linux_efi_stub() {
     log(u"Can't get image");
   }
 
-  kernel_image->device = main_device;
+  kernel_image->device = bootloader_image->device;
   kernel_image->load_options = arguments_memory;
   kernel_image->load_options_size = arguments_size;
 
@@ -170,9 +168,7 @@ void chainload_linux_efi_stub() {
   }
 }
 
-void setup_file_system(){
-
-	//get loaded image to get device path
+void get_loaded_image(){
 	struct GUID loaded_image_guid = EFI_LOADED_IMAGE_PROTOCOL_GUID;
 	
 	system_table->boot_table->open_protocol(bootloader_handle,
@@ -181,12 +177,21 @@ void setup_file_system(){
 			bootloader_handle,
 			0,
 			EFI_OPEN_PROTOCOL_BY_HANDLE_PROTOCOL)	;
+}
 
-	main_device = bootloader_image->device;
+LoadedImageProtocol* get_bootloader_image(){
+	return bootloader_image;
+}
+
+void setup_file_system(){
+
+	//get loaded image to get device path
+	get_loaded_image();
 
 	struct GUID file_system_guid = EFI_SIMPLE_FILE_SYSTEM_PROTOCOL_GUID;
-
-	system_table->boot_table->open_protocol(main_device,
+	
+	LoadedImageProtocol* bootloader = get_bootloader_image();
+	system_table->boot_table->open_protocol(bootloader->device,
 			&file_system_guid,
 			(void**)&root_file_system,
 			bootloader_handle,
