@@ -3,22 +3,29 @@ CFLAGS := -ffreestanding -fno-stack-check -fno-stack-protector -fPIC -fshort-wch
 
 all: pboot
 
+
+objects := main.o utils.o files.o
+
 start.o: start.c
 	cc $(CFLAGS) -c start.c
 
-pboot.bin: start.o main.o
-	ld start.o main.o -nostdlib -znocombreloc -shared -Bsymbolic -o pboot.bin -T binary.ld 
+pboot.bin: start.o $(objects)
+	ld start.o $(objects) -nostdlib -znocombreloc -shared -Bsymbolic -o pboot.bin -T binary.ld 
 
 pboot: efi.s pboot.bin
 	fasm efi.s pboot
 
+utils.o: utils.h utils.c
+	cc $(CFLAGS) -c utils.c
+
+files.o: files.h files.c
+	cc $(CFLAGS) -c files.c
 
 main.o: main.c config.h types.h efi.h
 	cc $(CFLAGS) -c main.c
 
 clean:
 	rm -f *.o
-	rm -f *.d
 	rm -f pboot
 	rm -f pboot.bin
 
