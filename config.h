@@ -1,8 +1,8 @@
 #include "types.h"
 
-static uint8_t default_entry = 0;
+static uint8_t default_entry = 2;
 
-static bool show_menu = true;
+static bool show_menu = false;
 
 static BootLoaderEntry entries[4] = {
 	{u"Pavon Linux", u"pLinux", u"quiet root=/dev/nvme0n1p3 rw fstype=ext4 init=/pinit"},

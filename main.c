@@ -2,6 +2,8 @@
 
 #include "menu.h"
 #include "types.h"
+#include "utils.h"
+#include "graphics.h"
 
 static Handle* bootloader_handle;
 static SystemTable* system_table;
@@ -88,9 +90,38 @@ void load_kernel_file(){
 	open_file(&opened_kernel_file,selected_kernel_name);
 }
 
+void boot_pkernel() {
+
+  log(u"Booting pkernel...");
+
+  get_graphics_output_protocol();
+  
+	load_kernel_file();
+
+  void *kernel_in_memory = read_file(opened_kernel_file);
+
+	void (*kernel)(void*,uint64_t);
+
+	kernel = (void (*)(void*,uint64_t))kernel_in_memory;
+  
+  void* framebuffer = get_framebuffer();
+
+  log(u"launching pkernel..");
+  //execute
+	(*kernel)(framebuffer,0xFFFFFFFF);
+
+  log(u"executed");
+  
+  //we never got here
+  hang();
+}
+
 void boot(){
 
   selected_kernel_name = get_selected_kernel();
+  if(selected_kernel_name[0] == u'p' && selected_kernel_name[1] == u'k'){
+    boot_pkernel();
+  }
 	selected_kernel_parameters = get_selected_parameters();
 		
 	load_kernel_file();

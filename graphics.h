@@ -87,4 +87,7 @@ struct FrameBuffer{
 
 typedef struct FrameBuffer FrameBuffer;
 
+void get_graphics_output_protocol();
+void* get_framebuffer();
+
 #endif

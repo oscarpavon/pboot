@@ -2,8 +2,21 @@
 #include "efi.h"
 #include "pboot.h"
 
-EfiGraphicsOutputProtocol* graphics_output_protocol;
-FrameBuffer frame_buffer;
+static EfiGraphicsOutputProtocol* graphics_output_protocol;
+static FrameBuffer frame_buffer;
+
+static void* framebuffer_in_memory;
+
+void* get_framebuffer(){
+	return framebuffer_in_memory;
+}
+
+void plot_pixel(int x, int y, uint32_t pixel){
+	FrameBuffer* frame = (FrameBuffer*)framebuffer_in_memory;
+*((uint32_t*)(frame->frame_buffer
+			+ 4 * frame->pixel_per_scan_line
+			* y + 4 * x)) = pixel;
+}
 
 void get_graphics_output_protocol(){
 
@@ -54,6 +67,17 @@ void get_graphics_output_protocol(){
 	frame_buffer.vertical_resolution =
 		graphics_output_protocol->mode->mode_info->vertical_resolution;
 
+
+  allocate_memory(sizeof(FrameBuffer), &framebuffer_in_memory);
+  copy_memory(framebuffer_in_memory, &frame_buffer, sizeof(FrameBuffer));
+	
+	const uint32_t background_color = 0x282C34;
+	
+	for(int y = 0; y < 400; y++){
+		for(int x = 0; x < 400; x++){
+			plot_pixel(x, y, background_color);
+		}
+	}
 
 }
 
