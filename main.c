@@ -7,19 +7,27 @@ static SystemTable* system_table;
 
 static FileProtocol* opened_kernel_file;
 
-static FileProtocol kernel_file;
-	
 static LoadedImageProtocol* bootloader_image;
-static Handle kernel_image_handle;
-
-static uint64_t kernel_image_entry;
 
 static uint16_t* selected_kernel_name;
 static uint16_t* selected_kernel_parameters;
 
+Handle get_bootloader_handle(){
+  return bootloader_handle;
+}
+
+SystemTable* get_system_table(){
+  return system_table;
+}
+
+LoadedImageProtocol* get_bootloader_image(){
+	return bootloader_image;
+}
 
 void chainload_linux_efi_stub() {
   Status status;
+
+  Handle kernel_image_handle;
 
   void *kernel_memory_allocated = read_file(opened_kernel_file);
 
@@ -75,33 +83,18 @@ void get_loaded_image(){
 			EFI_OPEN_PROTOCOL_BY_HANDLE_PROTOCOL)	;
 }
 
-SystemTable* get_system_table(){
-  return system_table;
-}
-
-LoadedImageProtocol* get_bootloader_image(){
-	return bootloader_image;
-}
-
-
-
 void load_kernel_file(){
 	open_file(&opened_kernel_file,selected_kernel_name);
 }
 
 void boot(){
-	
-	selected_kernel_name = get_selected_kernel();
+
+  selected_kernel_name = get_selected_kernel();
 	selected_kernel_parameters = get_selected_parameters();
 		
 	load_kernel_file();
 	chainload_linux_efi_stub();
 
-}
-
-
-Handle get_bootloader_handle(){
-  return bootloader_handle;
 }
 
 void main(Handle in_bootloader_handle, SystemTable *in_system_table) {
