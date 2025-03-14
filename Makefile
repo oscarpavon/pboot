@@ -4,7 +4,7 @@ CFLAGS := -ffreestanding -fno-stack-check -fno-stack-protector -fPIC -fshort-wch
 all: pboot
 
 
-objects := main.o utils.o files.o
+objects := main.o utils.o files.o configuration.o menu.o
 
 start.o: start.c
 	cc $(CFLAGS) -c start.c
@@ -15,13 +15,19 @@ pboot.bin: start.o $(objects)
 pboot: efi.s pboot.bin
 	fasm efi.s pboot
 
+configuration.o: configuration.h configuration.c
+	cc $(CFLAGS) -c configuration.c
+
+menu.o: menu.h menu.c config.h
+	cc $(CFLAGS) -c menu.c
+
 utils.o: utils.h utils.c
 	cc $(CFLAGS) -c utils.c
 
 files.o: files.h files.c
 	cc $(CFLAGS) -c files.c
 
-main.o: main.c config.h types.h efi.h
+main.o: main.c types.h efi.h
 	cc $(CFLAGS) -c main.c
 
 clean:
