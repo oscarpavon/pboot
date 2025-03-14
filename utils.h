@@ -9,7 +9,7 @@ size_t u16strlen(const uint16_t *str);
 
 void *set_memory(void *pointer, int value, size_t size);
 
-void log(uint16_t* text);
+void log(Unicode* text);
 
 void *copy_memory(void *destination, const void *source, size_t size);
 

@@ -2,6 +2,7 @@
 #include "menu.h"
 #include "efi.h"
 #include "pboot.h"
+#include "types.h"
 #include <stdint.h>
 
 static uint8_t number_of_entries = 0;
@@ -12,11 +13,11 @@ void set_default_entry(uint8_t entry){
   default_entry = entry;
 }
 
-uint16_t *get_selected_kernel() { 
+Unicode* get_selected_kernel() { 
 	return entries[entry_selected].kernel_name; 
 }
 
-uint16_t *get_selected_parameters() {
+Unicode* get_selected_parameters() {
 
   return entries[entry_selected].kernel_parameters;
 }

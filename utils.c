@@ -1,6 +1,7 @@
 #include "utils.h"
 #include "efi.h"
 #include "pboot.h"
+#include "types.h"
 
 void allocate_memory(uint64_t size, void** memory){
 
@@ -9,7 +10,7 @@ void allocate_memory(uint64_t size, void** memory){
 			EFI_LOADER_DATA, size, memory);
 }
 
-void log(uint16_t* text){
+void log(Unicode* text){
 	SystemTable* system_table = get_system_table();
 	
 	system_table->out->output_string(system_table->out,text);

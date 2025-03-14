@@ -1,6 +1,7 @@
 #include "pboot.h"
 
 #include "menu.h"
+#include "types.h"
 
 static Handle* bootloader_handle;
 static SystemTable* system_table;
@@ -9,8 +10,8 @@ static FileProtocol* opened_kernel_file;
 
 static LoadedImageProtocol* bootloader_image;
 
-static uint16_t* selected_kernel_name;
-static uint16_t* selected_kernel_parameters;
+static Unicode* selected_kernel_name;
+static Unicode* selected_kernel_parameters;
 
 Handle get_bootloader_handle(){
   return bootloader_handle;
@@ -40,18 +41,18 @@ void chainload_linux_efi_stub() {
     log(u"Can't load kernel image");
   }
 
-  uint16_t *arguments = selected_kernel_parameters;
+  Unicode* arguments = selected_kernel_parameters;
   size_t arguments_size = u16strlen(arguments);
-  arguments_size = arguments_size * sizeof(uint16_t);
+  arguments_size = arguments_size * sizeof(Unicode);
 
-  uint16_t *arguments_memory;
+  Unicode* arguments_memory;
   system_table->boot_table->allocate_pool(EFI_LOADER_DATA, arguments_size,
                                           (void **)&arguments_memory);
 
   copy_memory(arguments_memory, arguments, arguments_size);
 
   // passing arguments
-  struct GUID loaded_image_guid = EFI_LOADED_IMAGE_PROTOCOL_GUID;
+  GUID loaded_image_guid = EFI_LOADED_IMAGE_PROTOCOL_GUID;
 
   struct LoadedImageProtocol *kernel_image;
   status = system_table->boot_table->open_protocol(
@@ -73,7 +74,7 @@ void chainload_linux_efi_stub() {
 }
 
 void get_loaded_image(){
-	struct GUID loaded_image_guid = EFI_LOADED_IMAGE_PROTOCOL_GUID;
+	GUID loaded_image_guid = EFI_LOADED_IMAGE_PROTOCOL_GUID;
 	
 	system_table->boot_table->open_protocol(bootloader_handle,
 			&loaded_image_guid,

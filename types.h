@@ -6,10 +6,12 @@
 #include <stdbool.h>
 #include <stddef.h>
 
+typedef uint16_t Unicode;
+
 typedef struct {
-	uint16_t entry_name[20];
-	uint16_t kernel_name[20];
-	uint16_t kernel_parameters[100];
+	Unicode entry_name[20];
+	Unicode kernel_name[20];
+	Unicode kernel_parameters[100];
 }BootLoaderEntry;
 
 #endif
