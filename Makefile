@@ -1,8 +1,6 @@
 CFLAGS := -ffreestanding -fno-stack-check -fno-stack-protector -fPIC -fshort-wchar -mno-red-zone -maccumulate-outgoing-args -mabi=ms
 
-
 all: pboot
-
 
 objects := main.o utils.o files.o configuration.o menu.o graphics.o
 

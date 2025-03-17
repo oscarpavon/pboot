@@ -1,9 +1,11 @@
 #include "graphics.h"
 #include "efi.h"
 #include "pboot.h"
+#include <stdint.h>
 
 static EfiGraphicsOutputProtocol* graphics_output_protocol;
 static FrameBuffer frame_buffer;
+static GraphicsOutputProtocol* graphics;
 
 static void* framebuffer_in_memory;
 
@@ -22,16 +24,18 @@ void get_graphics_output_protocol(){
 
   SystemTable* system_table = get_system_table();
 
-	GUID gop_guid = EFI_GRAPHICS_OUTPUT_PROTOCOL_GUID;
+	GUID guid = EFI_GRAPHICS_OUTPUT_PROTOCOL_GUID;
 	
 	Status status;
 
-	status = system_table->boot_table->locate_protocol(&gop_guid,
+	status = system_table->boot_table->locate_protocol(&guid,
 			(void*)0, (void**)&graphics_output_protocol);
 
 	if(status != EFI_SUCCESS){
 	  log(u"Can't get Graphics Output Protocol with locate_protocol");
 	}
+
+	graphics = graphics_output_protocol;
 	
 
 	//get the current mode
@@ -54,6 +58,25 @@ void get_graphics_output_protocol(){
 	native_mode = graphics_output_protocol->mode->mode;
 	number_of_modes = graphics_output_protocol->mode->max_mode;
 
+	//get best mode
+	uint64_t best_horizontal = 0;
+	uint64_t best_mode = 0;
+	for(int i = 0; i<graphics_output_protocol->mode->max_mode;i++){
+		graphics->query_mode(graphics,i,&size_of_info,&info);
+		if(info->horizontal_resolution > best_horizontal){
+			best_mode = i;
+			best_horizontal = info->horizontal_resolution;
+			if(best_horizontal == 1920){
+				break;//other resolution are too high
+			}
+		}
+	}
+	
+	status = graphics->set_mode(graphics,best_mode)	;
+	if(status != EFI_SUCCESS){
+		log(u"Can't set best graphics mode");
+	}
+
 
 	//setup framebuffer
 	frame_buffer.frame_buffer = 
@@ -71,13 +94,5 @@ void get_graphics_output_protocol(){
   allocate_memory(sizeof(FrameBuffer), &framebuffer_in_memory);
   copy_memory(framebuffer_in_memory, &frame_buffer, sizeof(FrameBuffer));
 	
-	const uint32_t background_color = 0x282C34;
-	
-	for(int y = 0; y < 400; y++){
-		for(int x = 0; x < 400; x++){
-			plot_pixel(x, y, background_color);
-		}
-	}
-
 }
 

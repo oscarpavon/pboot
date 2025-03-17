@@ -78,6 +78,8 @@ typedef struct EfiGraphicsOutputProtocol{
 	EfiGraphicsOutputProtocolMode *mode;
 } EfiGraphicsOutputProtocol;
 
+typedef EfiGraphicsOutputProtocol GraphicsOutputProtocol;
+
 struct FrameBuffer{
 	uint64_t frame_buffer;
 	uint32_t pixel_per_scan_line;
