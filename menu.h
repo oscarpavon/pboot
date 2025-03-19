@@ -5,6 +5,8 @@
 
 Unicode* get_selected_parameters();
 
+BootLoaderEntry* get_entries();
+
 Unicode* get_selected_kernel();
 
 void can_show_menu();

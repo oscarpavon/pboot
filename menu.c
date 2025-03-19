@@ -11,6 +11,10 @@ static uint8_t entry_selected = 0;
 
 static bool show_menu = false;
 
+BootLoaderEntry* get_entries(){
+	return entries;
+}
+
 void set_default_entry(uint8_t entry){
   default_entry = entry;
 }

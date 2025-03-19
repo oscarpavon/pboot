@@ -1,8 +1,12 @@
 #include "efi.h"
 #include "menu.h"
+#include "types.h"
 #include "utils.h"
 #include "pboot.h"
 #include "files.h"
+
+
+static int current_parsing_entry = 0;
 
 void parse_configuration(uint64_t config_file_size, char* config){
 
@@ -34,10 +38,34 @@ void parse_configuration(uint64_t config_file_size, char* config){
 	//hang();
 }
 
+Unicode ascii_to_unicode(char character){
+	short unicode;
+	unicode = (short)character;
+}
+
+const char* parse_word(const char* word){
+	BootLoaderEntry* entries = get_entries();
+	int char_count = 0;
+	while(*word != ' '){
+		Unicode new_character = ascii_to_unicode(*word);
+		entries[current_parsing_entry].entry_name[char_count] = new_character;
+		word++;
+		char_count++;
+		if(!*word || *word == 10)
+			break;
+	}
+	Unicode zero = ascii_to_unicode('\0');
+	//char_count++;
+	entries[current_parsing_entry].entry_name[char_count] = zero;
+	current_parsing_entry++;
+
+	return word;
+}
+
 void load_configuration(){
 	FileProtocol* config_file;
 	open_file(&config_file, u"pboot.conf");
-	char* config = read_file(config_file);
+	const char* config = read_file(config_file);
 
 	while(*config){
 		if(*config == 'm'){
@@ -54,6 +82,10 @@ void load_configuration(){
 			uint8_t entry = *config - '0';
 
 			set_default_entry(entry);
+		}else if(*config == 'n'){
+			config++;
+			config++;
+			config = parse_word(config);
 		}
 		config++;
 	}
