@@ -43,21 +43,18 @@ Unicode ascii_to_unicode(char character){
 	unicode = (short)character;
 }
 
-const char* parse_word(const char* word){
-	BootLoaderEntry* entries = get_entries();
+const char* parse_string(const char* word, Unicode* output){
 	int char_count = 0;
-	while(*word != ' '){
+	while(*word != '\"'){
 		Unicode new_character = ascii_to_unicode(*word);
-		entries[current_parsing_entry].entry_name[char_count] = new_character;
+		output[char_count] = new_character;
 		word++;
 		char_count++;
 		if(!*word || *word == 10)
 			break;
 	}
 	Unicode zero = ascii_to_unicode('\0');
-	//char_count++;
-	entries[current_parsing_entry].entry_name[char_count] = zero;
-	current_parsing_entry++;
+	output[char_count] = zero;
 
 	return word;
 }
@@ -85,7 +82,22 @@ void load_configuration(){
 		}else if(*config == 'n'){
 			config++;
 			config++;
-			config = parse_word(config);
+			config++;
+			BootLoaderEntry* entries = get_entries();
+			config = parse_string(config,entries[current_parsing_entry].entry_name);
+		}else if(*config == 'k'){
+			config++;
+			config++;
+			config++;
+			BootLoaderEntry* entries = get_entries();
+			config = parse_string(config,entries[current_parsing_entry].kernel_name);
+		}else if(*config == 'p'){
+			config++;
+			config++;
+			config++;
+			BootLoaderEntry* entries = get_entries();
+			config = parse_string(config,entries[current_parsing_entry].kernel_parameters);
+			current_parsing_entry++;
 		}
 		config++;
 	}
