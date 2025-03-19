@@ -9,8 +9,14 @@ static uint8_t number_of_entries = 0;
 
 static uint8_t entry_selected = 0;
 
+static bool show_menu = false;
+
 void set_default_entry(uint8_t entry){
   default_entry = entry;
+}
+
+void set_show_menu(bool can_show){
+	show_menu = can_show;
 }
 
 Unicode* get_selected_kernel() { 

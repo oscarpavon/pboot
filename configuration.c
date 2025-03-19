@@ -1,4 +1,5 @@
 #include "efi.h"
+#include "menu.h"
 #include "utils.h"
 #include "pboot.h"
 #include "files.h"
@@ -38,9 +39,23 @@ void load_configuration(){
 	open_file(&config_file, u"pboot.conf");
 	char* config = read_file(config_file);
 
-	uint64_t config_file_size = get_file_size(config_file);
-	uint8_t entry = *config - '0';
+	while(*config){
+		if(*config == 'm'){
+			config++;
+			config++;
+			if(*config == '1'){
+				set_show_menu(true);	
+			}else if(*config == '0'){
+				set_show_menu(false);
+			}
+		}else if(*config == 'e'){
+			config++;
+			config++;
+			uint8_t entry = *config - '0';
 
-	set_default_entry(entry);
+			set_default_entry(entry);
+		}
+		config++;
+	}
 
 }

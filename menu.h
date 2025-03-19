@@ -9,4 +9,6 @@ Unicode* get_selected_kernel();
 
 void can_show_menu();
 
+void set_show_menu(bool can_show);
+
 #endif
