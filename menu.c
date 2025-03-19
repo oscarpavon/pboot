@@ -1,15 +1,23 @@
-#include "config.h"
 #include "menu.h"
 #include "efi.h"
 #include "pboot.h"
 #include "types.h"
-#include <stdint.h>
+
+static uint8_t default_entry = 2;
 
 static uint8_t number_of_entries = 0;
 
 static uint8_t entry_selected = 0;
 
 static bool show_menu = false;
+
+#define MAX_ENTRIES 10
+
+static BootLoaderEntry entries[MAX_ENTRIES] = {};
+
+void set_number_of_entries(uint8_t number){
+	number_of_entries = number;	
+}
 
 BootLoaderEntry* get_entries(){
 	return entries;
@@ -88,8 +96,6 @@ void enter_in_menu_loop(){
 }
 
 void can_show_menu(){
-
-  number_of_entries = sizeof(entries) / sizeof(entries[0]);
 
   entry_selected = default_entry;
 

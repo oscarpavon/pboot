@@ -4,7 +4,7 @@
 #include "utils.h"
 #include "pboot.h"
 #include "files.h"
-
+#include <stdint.h>
 
 static int current_parsing_entry = 0;
 
@@ -63,7 +63,8 @@ void load_configuration(){
 	FileProtocol* config_file;
 	open_file(&config_file, u"pboot.conf");
 	const char* config = read_file(config_file);
-
+	
+	uint8_t default_entry = 0;
 	while(*config){
 		if(*config == 'm'){
 			config++;
@@ -76,9 +77,8 @@ void load_configuration(){
 		}else if(*config == 'e'){
 			config++;
 			config++;
-			uint8_t entry = *config - '0';
+			default_entry = *config - '0';
 
-			set_default_entry(entry);
 		}else if(*config == 'n'){
 			config++;
 			config++;
@@ -101,5 +101,16 @@ void load_configuration(){
 		}
 		config++;
 	}
+	
+	uint8_t entries_count = current_parsing_entry-1;
+	set_number_of_entries(entries_count);
+	
+	if(default_entry > entries_count){
+		if(entries_count == 1)
+			default_entry = 0; 
+		else
+			default_entry = entries_count; 
+	}
 
+	set_default_entry(default_entry);
 }

@@ -16,7 +16,7 @@ pboot: efi.s pboot.bin
 configuration.o: configuration.h configuration.c
 	cc $(CFLAGS) -c configuration.c
 
-menu.o: menu.h menu.c config.h
+menu.o: menu.h menu.c
 	cc $(CFLAGS) -c menu.c
 
 graphics.o: graphics.h graphics.c
